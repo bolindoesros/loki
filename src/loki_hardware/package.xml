@@ -4,11 +4,10 @@
   <name>loki_hardware</name>
   <version>0.1.0</version>
   <description>
-    Hardware bridges for Loki AUV.
-    Simulation: Unity subscribes to /cmd/* directly, no bridge needed.
-    Real hardware: hw_bridge.py relays /cmd/* to ESP32 via micro-ROS.
+    hardware bridge for loki auv.
+    hw_bridge.py relays /cmd/* to ESP32 via micro-ROS.
   </description>
-  <maintainer email="your@email.com">Your Name</maintainer>
+  <maintainer email="bolin@bolin.com">Your Name</maintainer>
   <license>MIT</license>
   <exec_depend>rclpy</exec_depend>
   <exec_depend>std_msgs</exec_depend>

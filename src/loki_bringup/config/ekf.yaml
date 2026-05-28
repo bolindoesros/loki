@@ -8,7 +8,7 @@
 #   /depth/data        sensor_msgs/FluidPressure (or Float64)
 #
 # Output: /odometry/filtered  nav_msgs/Odometry
-
+# terms : https://github.com/h2r/p3_pkg/blob/master/params/ekf.yaml
 ekf_node:
   ros__parameters:
 

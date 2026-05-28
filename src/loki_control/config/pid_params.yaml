@@ -1,10 +1,10 @@
 loki_controller:
   ros__parameters:
 
-    max_pitch_cmd: 15.0   # [deg] maximum nose-down pitch command
-    alpha:          0.7   # derivative filter (0=heavy, 1=none)
+    max_pitch_cmd: 15.0   # (in deg, downward)
+    alpha:          0.7    
 
-    # ── Speed → thruster PWM ──────────────────────────────────────────────────
+    # ── Speed ────────────────────────────────────────────────────
     speed:
       kp:          10.0
       ki:          0.0
@@ -13,7 +13,7 @@ loki_controller:
       output_max:  400.0
       output_min: -400.0
 
-    # ── Yaw → rudder PWM ──────────────────────────────────────────────────────
+    # ── Yaw ──────────────────────────────────────────────────────
     yaw:
       kp:          101.0
       ki:          0.0
@@ -22,7 +22,7 @@ loki_controller:
       output_max:  400.0
       output_min: -400.0
 
-    # ── Depth outer loop → desired pitch [deg] ────────────────────────────────
+    # ── Depth outer loop ──────────────────────────────────────────
     depth:
       kp:          10.0
       ki:          0.0
@@ -31,7 +31,7 @@ loki_controller:
       output_max:  15.0
       output_min: -15.0
 
-    # ── Pitch inner loop → elevator PWM ──────────────────────────────────────
+    # ── Pitch inner loop ──────────────────────────────────────────
     pitch:
       kp:          10.0
       ki:          0.0

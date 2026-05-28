@@ -14,12 +14,12 @@ setup(
     install_requires=['setuptools'],
     zip_safe=True,
     maintainer='Your Name',
-    maintainer_email='your@email.com',
-    description='Hardware bridges for Loki AUV. hw_bridge.py added when ESP32 ready.',
+    maintainer_email='bolin@bolin.com',
+    description='Hardware bridge for Loki AUV.',
     license='MIT',
     entry_points={
         'console_scripts': [
-            # hw_bridge = loki_hardware.hw_bridge:main  (add when ESP32 ready)
+            'hw_bridge = loki_hardware.hw_bridge:main'
         ],
     },
 )
