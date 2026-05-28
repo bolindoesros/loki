@@ -1,73 +1,116 @@
-/**
- * @file pid.hpp
- * @brief 1D PID controller with derivative filter, anti-windup, output saturation.
+/*!******************************************************************************
+ *  \file       pid.hpp
+ *  \brief      PID 1D Controller definition
+ *  \authors    Rafael Pérez Seguí
  *
- * Based on Rafael Pérez Seguí (Universidad Politécnica de Madrid).
- * Adapted for the Loki AUV.
- */
+ *  \copyright  Copyright (c) 2022 Universidad Politécnica de Madrid
+ *              All Rights Reserved
+ *
+ * adapted for loki auv, removed templates and Eigen dependency
+ ********************************************************************************/
 
 #ifndef LOKI_CONTROL__PID_HPP_
 #define LOKI_CONTROL__PID_HPP_
 
 #include <algorithm>
 #include <cmath>
-#include <limits>
 #include <iostream>
+#include <limits>
 
 namespace loki
 {
 
 struct PIDParams
 {
-  double kp             = 0.0;
-  double ki             = 0.0;
-  double kd             = 0.0;
-  double alpha          = 1.0;   ///< Derivative low-pass (0=max filter, 1=none)
-  double antiwindup     = 0.0;   ///< Integral clamp limit (0=disabled)
-  double output_max     =  1e9;
-  double output_min     = -1e9;
-  bool   reset_on_sign  = false;
+  double Kp_gains = 0.0;
+  double Ki_gains = 0.0;
+  double Kd_gains = 0.0;
+
+  double antiwindup_cte    = 0.0;
+  double alpha             = 1.0;
+  bool   reset_integral_flag = false;
+
+  double upper_output_saturation = 0.0;
+  double lower_output_saturation = 0.0;
 };
 
 class PID
 {
 public:
-  PID() = default;
-  explicit PID(const PIDParams & p);
+  explicit PID(const PIDParams & pid_params = PIDParams(), const bool & verbose = false);
+  ~PID();
 
-  void   set_params(const PIDParams & p);
-  void   reset();
+  void update_params(const PIDParams & params);
+  void reset_controller();
 
-  /// Compute from error — derivative estimated internally via filter
-  double compute(double dt, double error);
+  void set_output_saturation(double upper_saturation, double lower_saturation);
+  void disable_output_saturation();
 
-  /// Compute with explicit derivative — preferred when clean rate available
-  double compute(double dt, double error, double error_dot);
+  static double get_error(double state, double reference);
+  static void   get_error(double state, double reference,
+                          double state_dot, double reference_dot,
+                          double & proportional_error, double & derivative_error);
 
-  // Diagnostics
-  double p_term()   const { return p_term_; }
-  double i_term()   const { return i_term_; }
-  double d_term()   const { return d_term_; }
-  double output()   const { return output_; }
-  double integral() const { return integral_; }
+  double compute_control(double dt, double proportional_error);
+  double compute_control(double dt, double proportional_error, double derivative_error);
+
+  static double saturate_output(double output, double upper_limits, double lower_limits);
+
+  PIDParams get_params() const;
+
+  void   set_gains(double kp, double ki, double kd);
+  void   get_gains(double & kp, double & ki, double & kd) const;
+  void   set_kp(double kp);
+  double get_kp() const;
+  void   set_ki(double ki);
+  double get_ki() const;
+  void   set_kd(double kd);
+  double get_kd() const;
+  void   set_anti_windup(double anti_windup);
+  double get_anti_windup() const;
+  void   set_alpha(double alpha);
+  double get_alpha() const;
+  void   set_reset_integral_saturation_flag(bool flag);
+  bool   get_reset_integral_saturation_flag() const;
+  void   get_saturation_limits(double & upper_limit, double & lower_limit) const;
+  bool   get_output_saturation_flag() const;
+  double get_proportional_error() const;
+  double get_derivative_error() const;
+  double get_proportional_error_contribution() const;
+  double get_integral_error_contribution() const;
+  double get_derivative_error_contribution() const;
+  double get_output() const;
 
 private:
-  PIDParams params_;
+  bool verbose_ = false;
 
-  bool   first_run_ = true;
-  double integral_  = 0.0;
-  double prev_err_  = 0.0;
-  double filt_d_    = 0.0;
+  double Kp_ = 0.0;
+  double Ki_ = 0.0;
+  double Kd_ = 0.0;
 
-  double p_term_ = 0.0;
-  double i_term_ = 0.0;
-  double d_term_ = 0.0;
-  double output_ = 0.0;
+  double antiwindup_cte_    = 0.0;
+  double alpha_             = 1.0;
+  bool   reset_integral_flag_ = false;
 
-  double compute_integral(double dt, double error);
-  double compute_derivative_filtered(double dt, double error);
-  double compute_derivative_direct(double error_dot);
-  double saturate(double v) const;
+  bool   saturation_flag_           = false;
+  double upper_output_saturation_   = 0.0;
+  double lower_output_saturation_   = 0.0;
+
+  bool   first_run_                 = true;
+  double integral_accum_error_      = 0.0;
+  double filtered_derivate_error_   = 0.0;
+
+  double proportional_error_              = 0.0;
+  double derivative_error_                = 0.0;
+  double proportional_error_contribution_ = 0.0;
+  double integral_error_contribution_     = 0.0;
+  double derivate_error_contribution_     = 0.0;
+  double output_                          = 0.0;
+
+protected:
+  double compute_integral_contribution(double dt, double proportional_error);
+  double compute_derivative_contribution_by_deriving(double dt, double proportional_error);
+  double compute_derivative_contribution(double derivate_error);
 };
 
 }  // namespace loki

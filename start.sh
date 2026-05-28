@@ -26,11 +26,7 @@ echo "Build done."
 sleep 1
 
 tmux new-session -d -s "$SESSION" -x 220 -y 50
-tmux split-window -h -t "$SESSION"
-tmux select-pane -t "$SESSION:0.0"
-tmux split-window -v
-tmux select-pane -t "$SESSION:0.2"
-tmux split-window -v
+tmux split-window -v -t "$SESSION"
 
 # Pane 0: launch
 tmux send-keys -t "$SESSION:0.0" \
@@ -45,14 +41,8 @@ alias depth="f(){ ros2 topic pub --once /target/depth std_msgs/msg/Float64 \"{da
 alias speed="f(){ ros2 topic pub --once /target/speed std_msgs/msg/Float64 \"{data: \$1}\"; unset -f f; }; f"
 alias heading="f(){ ros2 topic pub --once /target/heading std_msgs/msg/Float64 \"{data: \$1}\"; unset -f f; }; f"
 alias mass="f(){ ros2 topic pub --once /target/moving_mass std_msgs/msg/Float64 \"{data: \$1}\"; unset -f f; }; f"
-echo "Aliases ready: arm | disarm | depth N | speed N | heading N | mass N"
+clear
 ' C-m
-
-# Pane 2: spare
-tmux send-keys -t "$SESSION:0.2" "$SRC" C-m
-
-# Pane 3: spare
-tmux send-keys -t "$SESSION:0.3" "$SRC" C-m
 
 tmux set -g mouse on
 tmux select-pane -t "$SESSION:0.1"

@@ -28,8 +28,8 @@ loki_controller:
       ki:          0.0
       kd:          0.0
       antiwindup:  0.0
-      output_max:  15.0
-      output_min: -15.0
+      output_max:  20.0
+      output_min: -20.0
 
     # ── Pitch inner loop ──────────────────────────────────────────
     pitch:
