@@ -17,7 +17,7 @@ ControllerNode::ControllerNode()
 : Node("loki_controller")
 {
   // ── Parameters ─────────────────────────────────────────────────────────────
-  max_pitch_cmd_ = declare_parameter("max_pitch_cmd", 40.0);
+  max_pitch_cmd_ = declare_parameter("max_pitch_cmd", 60.0);
   double alpha   = declare_parameter("alpha",          0.7);
 
   speed_pid_.update_params(load_pid("speed", alpha));
@@ -135,7 +135,6 @@ void ControllerNode::on_arm(
 }
 
 // ── Odometry callback ─────────────────────────────────────────────────────────
-
 void ControllerNode::on_odometry(const nav_msgs::msg::Odometry::SharedPtr msg)
 {
   // Depth — positive downward
@@ -171,13 +170,12 @@ void ControllerNode::control_loop()
   double dt = std::clamp((t - last_time_).seconds(), 1e-4, 0.05);
   last_time_ = t;
 
-  // ── Always publish setpoint echoes for Foxglove ────────────────────────────
+  // ── Foxglove monitoring topics ───────────────────────────────────────────────────────
   publish_f64(mon_target_depth_pub_,   target_depth_);
   publish_f64(mon_target_heading_pub_, target_heading_);
   publish_f64(mon_target_speed_pub_,   target_speed_);
   publish_f64(mon_target_mass_pub_,    target_moving_mass_);
 
-  // ── Neutral outputs when disarmed ──────────────────────────────────────────
   if (!is_armed_) {
     auto i = std_msgs::msg::Int32();   i.data = 1500;
     auto f = std_msgs::msg::Float64(); f.data = 0.0;
@@ -193,24 +191,32 @@ void ControllerNode::control_loop()
 
   // ── Yaw ────────────────────────────────────────────────────────────────────
   double yaw_effort = yaw_pid_.compute_control(
-    dt, wrap_angle(target_heading_ - current_heading_));
+      dt, wrap_angle(target_heading_ - current_heading_));
 
   // ── Depth outer loop → desired pitch ───────────────────────────────────────
-  double desired_pitch = depth_pid_.compute_control(dt, target_depth_ - current_depth_);
-  desired_pitch        = std::clamp(desired_pitch, -max_pitch_cmd_, 0.0);
+  double depth_err = current_depth_ - target_depth_;
+  double desired_pitch = depth_pid_.compute_control(dt, depth_err);
+
+  RCLCPP_INFO(get_logger(),
+      "depth: %.2f  target: %.2f  err: %.2f  desired_pitch_raw: %.2f",
+      current_depth_, target_depth_, depth_err, desired_pitch);
+
+  desired_pitch = std::clamp(desired_pitch, -max_pitch_cmd_, max_pitch_cmd_);
 
   // ── Pitch inner loop → elevator ────────────────────────────────────────────
-  // Uses pitch rate from odometry as explicit derivative — cleaner than
-  // differencing pitch angle (PX4 uuv_att_control pattern)
   double pitch_effort = pitch_pid_.compute_control(
-    dt,
-    desired_pitch - current_pitch_,
-    -current_pitch_rate_);
+      dt,
+      desired_pitch - current_pitch_,
+      -current_pitch_rate_);
 
-  // ── Moving mass — operator controlled passthrough ──────────────────────────
-  auto mm_msg = std_msgs::msg::Float64();
-  mm_msg.data = target_moving_mass_;
-  moving_mass_pub_->publish(mm_msg);
+  RCLCPP_INFO(get_logger(),
+      "desired_pitch: %.2f  current_pitch: %.2f  pitch_effort: %.2f  elevator: %d",
+      desired_pitch, current_pitch_, pitch_effort,
+      effort_to_pwm(pitch_effort));
+    // ── Moving mass — operator controlled passthrough ──────────────────────────
+    auto mm_msg = std_msgs::msg::Float64();
+    mm_msg.data = target_moving_mass_;
+    moving_mass_pub_->publish(mm_msg);
 
   // ── Publish PWM ────────────────────────────────────────────────────────────
   auto t_msg = std_msgs::msg::Int32(); t_msg.data = effort_to_pwm(speed_effort);
