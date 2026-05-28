@@ -63,7 +63,7 @@ def generate_launch_description() -> LaunchDescription:
 
     return LaunchDescription([
         ekf_node,
-        # TimerAction(period=1.0, actions=[hw_bridge]),
+        #TimerAction(period=1.0, actions=[hw_bridge]),
         TimerAction(period=2.0, actions=[controller]),
         TimerAction(period=4.0, actions=[monitor]),
         TimerAction(period=4.0, actions=[foxglove]),        
