@@ -17,7 +17,7 @@ ControllerNode::ControllerNode()
 : Node("loki_controller")
 {
   // ── Parameters ─────────────────────────────────────────────────────────────
-  max_pitch_cmd_ = declare_parameter("max_pitch_cmd", 15.0);
+  max_pitch_cmd_ = declare_parameter("max_pitch_cmd", 40.0);
   double alpha   = declare_parameter("alpha",          0.7);
 
   speed_pid_.update_params(load_pid("speed", alpha));
@@ -112,7 +112,7 @@ void ControllerNode::on_arm(
     target_heading_     = current_heading_;
     target_depth_       = current_depth_;
     target_speed_       = 0.0;
-    target_moving_mass_ = 0.5;
+    target_moving_mass_ = 0.0;
 
     // Reset all integrators — prevents pre-arm windup
     speed_pid_.reset_controller();
@@ -180,7 +180,7 @@ void ControllerNode::control_loop()
   // ── Neutral outputs when disarmed ──────────────────────────────────────────
   if (!is_armed_) {
     auto i = std_msgs::msg::Int32();   i.data = 1500;
-    auto f = std_msgs::msg::Float64(); f.data = 0.5;
+    auto f = std_msgs::msg::Float64(); f.data = 0.0;
     thruster_pub_->publish(i);
     elevator_pub_->publish(i);
     rudder_pub_->publish(i);
