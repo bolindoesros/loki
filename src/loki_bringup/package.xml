@@ -3,8 +3,8 @@
 <package format="3">
   <name>loki_bringup</name>
   <version>0.1.0</version>
-  <description>Launch files for Loki AUV — sim and real hardware.</description>
-  <maintainer email="your@email.com">Your Name</maintainer>
+  <description>launch files for loki auv (sim and real)</description>
+  <maintainer email="bolin@bolin.com">Bolin</maintainer>
   <license>MIT</license>
   <buildtool_depend>ament_cmake</buildtool_depend>
   <exec_depend>loki_control</exec_depend>

@@ -1,21 +1,7 @@
 """
-sim.launch.py
-─────────────
-Launch file for Loki AUV Unity simulation.
-
-Unity side required:
-  OdometryPublisher  → publishes to /odometry/filtered
-  ActuatorBridge     → subscribes to /cmd/thruster, /cmd/elevator, /cmd/rudder
-
-Usage:
+  OdometryPublisher.cs publishes to /odometry/filtered
+  ActuatorBridge.cs subscribes to /cmd/thruster, /cmd/elevator, /cmd/rudder
   ros2 launch loki_bringup sim.launch.py
-
-Commands (separate terminal):
-  ros2 service call /system/arm std_srvs/srv/SetBool "{data: true}"
-  ros2 topic pub --once /target/speed        std_msgs/msg/Float64 "{data: 1.5}"
-  ros2 topic pub --once /target/depth        std_msgs/msg/Float64 "{data: 0.8}"
-  ros2 topic pub --once /target/heading      std_msgs/msg/Float64 "{data: 0.0}"
-  ros2 topic pub --once /target/moving_mass  std_msgs/msg/Float64 "{data: 0.5}"
 """
 
 from launch import LaunchDescription
@@ -23,7 +9,6 @@ from launch.actions import TimerAction
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 from launch.substitutions import PathJoinSubstitution
-
 
 def generate_launch_description() -> LaunchDescription:
 
@@ -64,7 +49,7 @@ def generate_launch_description() -> LaunchDescription:
 
     return LaunchDescription([
         ros_tcp_endpoint,
-        TimerAction(period=3.0, actions=[controller]),
+        TimerAction(period=2.0, actions=[controller]),
         TimerAction(period=3.0, actions=[monitor]),
         TimerAction(period=3.0, actions=[foxglove]),
     ])

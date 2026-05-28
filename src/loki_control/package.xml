@@ -3,8 +3,8 @@
 <package format="3">
   <name>loki_control</name>
   <version>0.1.0</version>
-  <description>Cascaded PID depth controller for the Loki torpedo AUV.</description>
-  <maintainer email="your@email.com">Your Name</maintainer>
+  <description>PID controller for loki auv</description>
+  <maintainer email="bolin@bolin.com">Bolin</maintainer>
   <license>MIT</license>
   <buildtool_depend>ament_cmake</buildtool_depend>
   <depend>rclcpp</depend>

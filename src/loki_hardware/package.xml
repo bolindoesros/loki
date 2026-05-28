@@ -7,7 +7,7 @@
     hardware bridge for loki auv.
     hw_bridge.py relays /cmd/* to ESP32 via micro-ROS.
   </description>
-  <maintainer email="bolin@bolin.com">Your Name</maintainer>
+  <maintainer email="bolin@bolin.com">Bolin</maintainer>
   <license>MIT</license>
   <exec_depend>rclpy</exec_depend>
   <exec_depend>std_msgs</exec_depend>

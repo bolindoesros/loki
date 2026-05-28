@@ -1,14 +1,4 @@
 """
-real.launch.py
-──────────────
-Launch file for Loki AUV real hardware (pool test).
-
-Differences from sim.launch.py:
-  - No ros_tcp_endpoint (no Unity)
-  - Adds robot_localization EKF for sensor fusion
-  - Adds hw_bridge for ESP32 communication (when ready)
-
-Usage:
   ros2 launch loki_bringup real.launch.py
 """
 
@@ -39,7 +29,8 @@ def generate_launch_description() -> LaunchDescription:
         name="ekf_node",
         output="screen",
         parameters=[ekf_params],
-        remappings=[("odometry/filtered", "/odometry/filtered")],
+        respawn=True,
+        respawn_delay=2.0,
     )
 
     controller = Node(
@@ -48,6 +39,8 @@ def generate_launch_description() -> LaunchDescription:
         name="loki_controller",
         output="screen",
         parameters=[pid_params],
+        respawn=True,
+        respawn_delay=2.0,
     )
 
     monitor = Node(
@@ -55,6 +48,8 @@ def generate_launch_description() -> LaunchDescription:
         executable="monitor",
         name="loki_monitor",
         output="screen",
+        respawn=True,
+        respawn_delay=2.0,
     )
 
     foxglove = Node(
@@ -62,13 +57,14 @@ def generate_launch_description() -> LaunchDescription:
         executable="foxglove_bridge",
         name="foxglove_bridge",
         output="screen",
+        respawn=True,
+        respawn_delay=2.0,
     )
 
     return LaunchDescription([
         ekf_node,
-        TimerAction(period=3.0, actions=[controller]),
-        TimerAction(period=3.0, actions=[monitor]),
-        TimerAction(period=3.0, actions=[foxglove]),
-        # hw_bridge added here when ESP32 ready
-        # TimerAction(period=3.0, actions=[hw_bridge]),
+        # TimerAction(period=1.0, actions=[hw_bridge]),
+        TimerAction(period=2.0, actions=[controller]),
+        TimerAction(period=4.0, actions=[monitor]),
+        TimerAction(period=4.0, actions=[foxglove]),        
     ])
