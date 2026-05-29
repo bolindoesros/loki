@@ -2,7 +2,7 @@
  * @file controller.hpp
  * @brief Cascaded PID controller for the loki auv.
  *
- * Control architecture:
+ * Control architecture :
  *
  *   /target/speed    → speed PID   → /cmd/thruster    (PWM)
  *   /target/heading  → yaw PID     → /cmd/rudder      (PWM)
@@ -10,14 +10,14 @@
  *                      pitch PID   → /cmd/elevator     (PWM)
  *   /target/moving_mass            → /cmd/moving_mass  (Float64)
  *
- * Standard topic interface:
- *   Sub: /odometry/filtered, /target/depth, /target/heading,
- *        /target/speed, /target/moving_mass
- *   Pub: /cmd/thruster, /cmd/elevator, /cmd/rudder,
- *        /cmd/moving_mass, /system/arm_state
- *        /monitor/target/depth, /monitor/target/heading,
- *        /monitor/target/speed, /monitor/target/moving_mass
- *   Srv: /system/arm
+ * Topic interface:
+ *   Sub : /odometry/filtered, /target/depth, /target/heading,
+ *         /target/speed, /target/moving_mass
+ *   Pub : /cmd/thruster, /cmd/elevator, /cmd/rudder,
+ *         /cmd/moving_mass, /system/arm_state,
+ *         /monitor/target/depth, /monitor/target/heading,
+ *         /monitor/target/speed, /monitor/target/moving_mass
+ *   Srv : /system/arm
  */
 
 #ifndef LOKI_CONTROL__CONTROLLER_HPP_
@@ -56,8 +56,7 @@ private:
   static int    effort_to_pwm(double effort, bool invert = false);
   static double wrap_angle(double deg);
   PIDParams     load_pid(const std::string & ns, double alpha);
-  void          publish_f64(
-    rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr & pub, double value);
+  void          publish_f64(rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr & pub, double value);
 
   // ── Vehicle state ────────────────────────────────────────────────────────
   bool   is_armed_           = false;
@@ -105,7 +104,7 @@ private:
   rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr mon_target_speed_pub_;
   rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr mon_target_mass_pub_;
 
-  // ── Service and Timer ───────────────────────────────────────────────────────
+  // ── Arming and Timer ───────────────────────────────────────────────────────
   rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr arm_srv_;
   rclcpp::TimerBase::SharedPtr timer_;
 };

@@ -10,16 +10,11 @@
 
 namespace loki
 {
-
-// ── Constructor ───────────────────────────────────────────────────────────────
-
 ControllerNode::ControllerNode()
 : Node("loki_controller")
 {
-  // ── Parameters ─────────────────────────────────────────────────────────────
   max_pitch_cmd_ = declare_parameter("max_pitch_cmd", 60.0);
   double alpha   = declare_parameter("alpha",          0.7);
-
   speed_pid_.update_params(load_pid("speed", alpha));
   yaw_pid_.update_params(load_pid("yaw",     alpha));
   depth_pid_.update_params(load_pid("depth", alpha));
@@ -74,32 +69,24 @@ ControllerNode::ControllerNode()
     std::bind(&ControllerNode::control_loop, this));
 
   last_time_ = now();
-  RCLCPP_INFO(get_logger(), "Loki controller ready — call /system/arm to start");
+  RCLCPP_INFO(get_logger(), "Loki controller ready");
 }
 
-// ── Target callbacks ──────────────────────────────────────────────────────────
-
-void ControllerNode::on_target_depth(const std_msgs::msg::Float64::SharedPtr msg)
-{
+void ControllerNode::on_target_depth(const std_msgs::msg::Float64::SharedPtr msg){
   target_depth_ = msg->data;
 }
 
-void ControllerNode::on_target_heading(const std_msgs::msg::Float64::SharedPtr msg)
-{
+void ControllerNode::on_target_heading(const std_msgs::msg::Float64::SharedPtr msg){
   target_heading_ = msg->data;
 }
 
-void ControllerNode::on_target_speed(const std_msgs::msg::Float64::SharedPtr msg)
-{
+void ControllerNode::on_target_speed(const std_msgs::msg::Float64::SharedPtr msg){
   target_speed_ = msg->data;
 }
 
-void ControllerNode::on_target_moving_mass(const std_msgs::msg::Float64::SharedPtr msg)
-{
+void ControllerNode::on_target_moving_mass(const std_msgs::msg::Float64::SharedPtr msg){
   target_moving_mass_ = std::clamp(msg->data, 0.0, 1.0);
 }
-
-// ── Arm callback ──────────────────────────────────────────────────────────────
 
 void ControllerNode::on_arm(
   const std_srvs::srv::SetBool::Request::SharedPtr req,
@@ -108,13 +95,13 @@ void ControllerNode::on_arm(
   is_armed_ = req->data;
 
   if (is_armed_) {
-    // Capture current state as setpoints on arm
+    // capture current state as setpoints on arm
     target_heading_     = current_heading_;
     target_depth_       = current_depth_;
     target_speed_       = 0.0;
     target_moving_mass_ = 0.0;
 
-    // Reset all integrators — prevents pre-arm windup
+    // reset all integrators to prevents pre-arm windup
     speed_pid_.reset_controller();
     yaw_pid_.reset_controller();
     depth_pid_.reset_controller();
@@ -162,15 +149,14 @@ void ControllerNode::on_odometry(const nav_msgs::msg::Odometry::SharedPtr msg)
 }
 
 // ── Control loop ──────────────────────────────────────────────────────────────
-
 void ControllerNode::control_loop()
 {
-  // ── Timing ─────────────────────────────────────────────────────────────────
+  // ── Time ─────────────────────────────────────────────────────────────────
   auto   t  = now();
   double dt = std::clamp((t - last_time_).seconds(), 1e-4, 0.05);
   last_time_ = t;
 
-  // ── Foxglove monitoring topics ───────────────────────────────────────────────────────
+  // ── Foxglove topics ───────────────────────────────────────────────────────
   publish_f64(mon_target_depth_pub_,   target_depth_);
   publish_f64(mon_target_heading_pub_, target_heading_);
   publish_f64(mon_target_speed_pub_,   target_speed_);
@@ -193,17 +179,12 @@ void ControllerNode::control_loop()
   double yaw_effort = yaw_pid_.compute_control(
       dt, wrap_angle(target_heading_ - current_heading_));
 
-  // ── Depth outer loop → desired pitch ───────────────────────────────────────
+  // ── Depth outer loop produces pitch target ───────────────────────────────────────
   double depth_err = current_depth_ - target_depth_;
   double desired_pitch = depth_pid_.compute_control(dt, depth_err);
-
-  RCLCPP_INFO(get_logger(),
-      "depth: %.2f  target: %.2f  err: %.2f  desired_pitch_raw: %.2f",
-      current_depth_, target_depth_, depth_err, desired_pitch);
-
   desired_pitch = std::clamp(desired_pitch, -max_pitch_cmd_, max_pitch_cmd_);
 
-  // ── Pitch inner loop → elevator ────────────────────────────────────────────
+  // ── Pitch inner loop  ───────────────────────────────────────────────────────────
   double pitch_effort = pitch_pid_.compute_control(
       dt,
       desired_pitch - current_pitch_,
@@ -213,10 +194,11 @@ void ControllerNode::control_loop()
       "desired_pitch: %.2f  current_pitch: %.2f  pitch_effort: %.2f  elevator: %d",
       desired_pitch, current_pitch_, pitch_effort,
       effort_to_pwm(pitch_effort));
-    // ── Moving mass — operator controlled passthrough ──────────────────────────
-    auto mm_msg = std_msgs::msg::Float64();
-    mm_msg.data = target_moving_mass_;
-    moving_mass_pub_->publish(mm_msg);
+
+  // ── Moving mass ─────────────────────────────────────────────────────────────
+  auto mm_msg = std_msgs::msg::Float64();
+  mm_msg.data = target_moving_mass_;
+  moving_mass_pub_->publish(mm_msg);
 
   // ── Publish PWM ────────────────────────────────────────────────────────────
   auto t_msg = std_msgs::msg::Int32(); t_msg.data = effort_to_pwm(speed_effort);
@@ -228,7 +210,6 @@ void ControllerNode::control_loop()
   rudder_pub_->publish(r_msg);
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
 
 PIDParams ControllerNode::load_pid(const std::string & ns, double alpha)
 {
