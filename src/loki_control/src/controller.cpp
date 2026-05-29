@@ -138,7 +138,7 @@ void ControllerNode::on_arm(
 // ── Odometry callback ─────────────────────────────────────────────────────────
 void ControllerNode::on_odometry(const nav_msgs::msg::Odometry::SharedPtr msg)
 {
-  // Depth — positive downward
+  // Depth (pose.position.z gives positive down)
   current_depth_ = msg->pose.pose.position.z;
 
   // Forward speed

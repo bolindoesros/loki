@@ -46,7 +46,7 @@ class MonitorNode(Node):
         self.get_logger().info("MonitorNode ready")
 
     def _on_odom(self, msg: Odometry) -> None:
-        self._pub_f("depth", -msg.pose.pose.position.z)
+        self._pub_f("depth",  msg.pose.pose.position.z)
         self._pub_f("speed",  msg.twist.twist.linear.x)
 
         q = msg.pose.pose.orientation
