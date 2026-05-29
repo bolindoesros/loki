@@ -61,6 +61,7 @@ ControllerNode::ControllerNode()
   mon_target_heading_pub_ = create_publisher<std_msgs::msg::Float64>("/monitor/target/heading",     qos);
   mon_target_speed_pub_   = create_publisher<std_msgs::msg::Float64>("/monitor/target/speed",       qos);
   mon_target_mass_pub_    = create_publisher<std_msgs::msg::Float64>("/monitor/target/moving_mass", qos);
+  mon_desired_pitch_pub_  = create_publisher<std_msgs::msg::Float64>("/monitor/desired_pitch",      qos);
 
   // ── Arm service ────────────────────────────────────────────────────────────
   arm_srv_ = create_service<std_srvs::srv::SetBool>(
@@ -138,7 +139,7 @@ void ControllerNode::on_arm(
 void ControllerNode::on_odometry(const nav_msgs::msg::Odometry::SharedPtr msg)
 {
   // Depth — positive downward
-  current_depth_ = -msg->pose.pose.position.z;
+  current_depth_ = msg->pose.pose.position.z;
 
   // Forward speed
   current_speed_ = msg->twist.twist.linear.x;
@@ -203,6 +204,8 @@ void ControllerNode::control_loop()
 
   desired_pitch = std::clamp(desired_pitch, -max_pitch_cmd_, max_pitch_cmd_);
 
+  publish_f64(mon_desired_pitch_pub_, desired_pitch);
+
   // ── Pitch inner loop → elevator ────────────────────────────────────────────
   double pitch_effort = pitch_pid_.compute_control(
       dt,
@@ -213,6 +216,7 @@ void ControllerNode::control_loop()
       "desired_pitch: %.2f  current_pitch: %.2f  pitch_effort: %.2f  elevator: %d",
       desired_pitch, current_pitch_, pitch_effort,
       effort_to_pwm(pitch_effort));
+
     // ── Moving mass — operator controlled passthrough ──────────────────────────
     auto mm_msg = std_msgs::msg::Float64();
     mm_msg.data = target_moving_mass_;

@@ -98,13 +98,14 @@ private:
   rclcpp::Publisher<std_msgs::msg::Int32>::SharedPtr   rudder_pub_;
   rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr moving_mass_pub_;
   rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr    arm_state_pub_;
-
+  
   // ── Monitor publishers  ────────────────────────────────────────────────────
   rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr mon_target_depth_pub_;
   rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr mon_target_heading_pub_;
   rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr mon_target_speed_pub_;
   rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr mon_target_mass_pub_;
-
+  rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr mon_desired_pitch_pub_;
+  
   // ── Service and Timer ───────────────────────────────────────────────────────
   rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr arm_srv_;
   rclcpp::TimerBase::SharedPtr timer_;
