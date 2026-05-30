@@ -19,25 +19,24 @@ class MonitorNode(Node):
         qos = QoSProfile(depth=10, reliability=ReliabilityPolicy.RELIABLE)
 
         self._pub = {
-            # State
+            # state
             "depth":           self.create_publisher(Float64, "/monitor/depth",           qos),
             "pitch":           self.create_publisher(Float64, "/monitor/pitch_deg",       qos),
             "roll":            self.create_publisher(Float64, "/monitor/roll_deg",        qos),
             "heading":         self.create_publisher(Float64, "/monitor/heading_deg",     qos),
             "speed":           self.create_publisher(Float64, "/monitor/speed",           qos),
             "armed":           self.create_publisher(Float64, "/monitor/armed",           qos),
-            # Commands
+            # commands, cmd_thruster/elevator/rudder are in PWM, cmd_moving_mass is distance
             "cmd_thruster":    self.create_publisher(Float64, "/monitor/cmd/thruster",    qos),
             "cmd_elevator":    self.create_publisher(Float64, "/monitor/cmd/elevator",    qos),
             "cmd_rudder":      self.create_publisher(Float64, "/monitor/cmd/rudder",      qos),
             "cmd_moving_mass": self.create_publisher(Float64, "/monitor/cmd/moving_mass", qos),
         }
 
-        # State
+        # state
         self.create_subscription(Odometry, "/odometry/filtered",  self._on_odom,        qos)
         self.create_subscription(Bool,     "/system/arm_state",   self._on_arm_state,   qos)
-
-        # Commands
+        # commands
         self.create_subscription(Int32,   "/cmd/thruster",    self._on_cmd_thruster,    qos)
         self.create_subscription(Int32,   "/cmd/elevator",    self._on_cmd_elevator,    qos)
         self.create_subscription(Int32,   "/cmd/rudder",      self._on_cmd_rudder,      qos)
@@ -46,7 +45,7 @@ class MonitorNode(Node):
         self.get_logger().info("MonitorNode ready")
 
     def _on_odom(self, msg: Odometry) -> None:
-        self._pub_f("depth",  msg.pose.pose.position.z)
+        self._pub_f("depth",  msg.pose.pose.position.z) # positive when diving!
         self._pub_f("speed",  msg.twist.twist.linear.x)
 
         q = msg.pose.pose.orientation
