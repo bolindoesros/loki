@@ -4,38 +4,38 @@ loki_controller:
     max_pitch_cmd: 20.0   # (in deg, downward)
     alpha:          0.7    
 
-    # ── Speed ────────────────────────────────────────────────────
+    # ── Speed (PI) ────────────────────────────────────────────────────
     speed:
       kp:         1200.0
-      ki:          200.0
+      ki:          300.0
       kd:            0.0
       antiwindup:  400.0
       output_max:  400.0
       output_min: -400.0
 
-    # ── Yaw ──────────────────────────────────────────────────────
+    # ── Yaw (PI) ──────────────────────────────────────────────────────
     yaw:
-      kp:        -20.0
-      ki:          0.0
-      kd:         -1.0
-      antiwindup:  0.0
+      kp:        -30.0
+      ki:         -5.0
+      kd:          0.0
+      antiwindup:  5.0
       output_max:  400.0
       output_min: -400.0
 
     # ── Depth outer loop ──────────────────────────────────────────
     depth:
-      kp:          5.0
-      ki:          0.2
-      kd:          2.0
-      antiwindup:  30.0
+      kp:          3.0
+      ki:          0.0
+      kd:         12.0
+      antiwindup:  0.0
       output_max:  20.0
-      output_min: -50.0
+      output_min: -40.0
 
     # ── Pitch inner loop ──────────────────────────────────────────
     pitch:
       kp:         20.0
-      ki:          1.0
-      kd:          2.0
-      antiwindup:  250.0
+      ki:          0.0
+      kd:         10.0
+      antiwindup:  0.0
       output_max:  400.0
       output_min: -400.0
