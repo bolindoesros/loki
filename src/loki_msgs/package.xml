@@ -3,7 +3,7 @@
 <package format="3">
   <name>loki_msgs</name>
   <version>0.1.0</version>
-  <description>Custom ROS2 message definitions for the Loki AUV.</description>
+  <description>custom ROS2 message definitions for the loki auv.</description>
   <maintainer email="bolin@bolin.com">Bolin</maintainer>
   <license>MIT</license>
   <buildtool_depend>ament_cmake</buildtool_depend>

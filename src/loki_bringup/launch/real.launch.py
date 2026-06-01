@@ -5,47 +5,72 @@
 from launch import LaunchDescription
 from launch.actions import TimerAction
 from launch_ros.actions import Node
-from launch_ros.substitutions import FindPackageShare
-from launch.substitutions import PathJoinSubstitution
-
+from ament_index_python.packages import get_package_share_directory
+import os
 
 def generate_launch_description() -> LaunchDescription:
 
-    pid_params = PathJoinSubstitution([
-        FindPackageShare("loki_control"),
+    pid_params = os.path.join(
+        get_package_share_directory("loki_control"),
         "config",
         "pid_params.yaml",
-    ])
+    )
 
-    ekf_params = PathJoinSubstitution([
-        FindPackageShare("auv_localization"),
+    ekf_params = os.path.join(
+        get_package_share_directory("loki_localization"),
         "config",
         "ekf.yaml",
-    ])
+    )
+
+    urdf_file = os.path.join(
+        get_package_share_directory("loki_description"),
+        "urdf",
+        "Full_Assembly_URDF_Combined.urdf",
+    )
+
+    # description
+    robot_state_publisher = Node(
+        package="robot_state_publisher",
+        executable="robot_state_publisher",
+        name="robot_state_publisher",
+        output="screen",
+        arguments=[urdf_file],
+        respawn=True,
+        respawn_delay=2.0,
+    )
 
     # hardware drivers
     imu_node = Node(
-        package="ahrs_orientation",
-        executable="ahrs_node",
-        name="ahrs_node",
+        package="loki_hardware_imu",
+        executable="ahrs_orientation",
+        name="ahrs_orientation_node",
         output="screen",
         respawn=True,
         respawn_delay=2.0,
     )
 
-    dvl_node = Node(
-        package="tracker650_ros_driver",
-        executable="tracker650_node",
-        name="tracker650_node",
+    dvl_receiver = Node(
+        package="loki_hardware_dvl",
+        executable="tracker650_receiver",
+        name="tracker650_receiver",
         output="screen",
         respawn=True,
         respawn_delay=2.0,
     )
 
-    esp32_node = Node(
-        package="esp32_bench",
-        executable="esp32_node",
-        name="esp32_node",
+    dvl_republisher = Node(
+        package="loki_hardware_dvl",
+        executable="tracker650_republisher",
+        name="tracker650_republisher",
+        output="screen",
+        respawn=True,
+        respawn_delay=2.0,
+    )
+
+    hw_bridge = Node(
+        package="loki_hardware",
+        executable="hw_bridge",
+        name="hw_bridge",
         output="screen",
         respawn=True,
         respawn_delay=2.0,
@@ -93,15 +118,18 @@ def generate_launch_description() -> LaunchDescription:
     )
 
     return LaunchDescription([
+        # description
+        robot_state_publisher,
         # hardware drivers
         imu_node,
-        dvl_node,
-        esp32_node,
+        dvl_receiver,
+        dvl_republisher,
+        hw_bridge,
         # EKF
         TimerAction(period=2.0, actions=[ekf_node]),
         # control
         TimerAction(period=4.0, actions=[controller]),
-        # monitoring and foxglove bridge
+        # monitoring
         TimerAction(period=6.0, actions=[monitor]),
         TimerAction(period=6.0, actions=[foxglove]),
     ])
