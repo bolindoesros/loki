@@ -7,16 +7,16 @@
 from launch import LaunchDescription
 from launch.actions import TimerAction
 from launch_ros.actions import Node
-from launch_ros.substitutions import FindPackageShare
-from launch.substitutions import PathJoinSubstitution
+from ament_index_python.packages import get_package_share_directory
+import os
 
 def generate_launch_description() -> LaunchDescription:
 
-    pid_params = PathJoinSubstitution([
-        FindPackageShare("loki_control"),
+    pid_params = os.path.join(
+        get_package_share_directory("loki_control"),
         "config",
         "pid_params.yaml",
-    ])
+    )
 
     ros_tcp_endpoint = Node(
         package="ros_tcp_endpoint",
