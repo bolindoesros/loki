@@ -47,9 +47,17 @@ def generate_launch_description() -> LaunchDescription:
         output="screen",
     )
 
+    step_logger = Node(
+        package="loki_monitor",
+        executable="step_logger",
+        name="step_logger",
+        output="screen",
+    )
+
     return LaunchDescription([
         ros_tcp_endpoint,
         TimerAction(period=2.0, actions=[controller]),
         TimerAction(period=3.0, actions=[monitor]),
         TimerAction(period=3.0, actions=[foxglove]),
+        TimerAction(period=3.0, actions=[step_logger]),
     ])

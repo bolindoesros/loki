@@ -20,7 +20,7 @@ echo "Building..."
 cd "$WS"
 source /opt/ros/jazzy/setup.bash
 source "$HOME/auv_demo_ws/install/setup.bash"
-colcon build --packages-select loki_control loki_monitor loki_hardware loki_bringup
+colcon build --packages-select loki_control loki_monitor loki_hardware loki_hardware_imu loki_hardware_dvl loki_localization loki_description loki_msgs loki_bringup
 source "$WS/install/setup.bash"
 echo "Build done."
 sleep 1
