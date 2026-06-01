@@ -45,8 +45,8 @@ config: `loki_control/config/pid_params.yaml`
 |---|---|---|---|---|
 | speed | 1200 | 300 | 0 | ±400 |
 | yaw | -30 | -5 | 0 | ±400 |
-| depth (outer) | 3 | 0 | 12 | -40 to +20 |
-| pitch (inner) | 20 | 0 | 10 | ±400 |
+| depth (outer) | 120 | 0 | 0 | -40 to +20 |
+| pitch (inner) | 150 | 0 | 0 | ±400 |
 
 rebuild after changes: `colcon build && source install/setup.bash`
 
