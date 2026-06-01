@@ -1,5 +1,7 @@
 # loki auv workspace
 
+Demo video : https://youtu.be/YzWAewJNzD0
+
 ## packages
 
 | package | role |
