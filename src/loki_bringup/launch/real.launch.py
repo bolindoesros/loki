@@ -18,11 +18,40 @@ def generate_launch_description() -> LaunchDescription:
     ])
 
     ekf_params = PathJoinSubstitution([
-        FindPackageShare("loki_bringup"),
+        FindPackageShare("auv_localization"),
         "config",
         "ekf.yaml",
     ])
 
+    # hardware drivers
+    imu_node = Node(
+        package="ahrs_orientation",
+        executable="ahrs_node",
+        name="ahrs_node",
+        output="screen",
+        respawn=True,
+        respawn_delay=2.0,
+    )
+
+    dvl_node = Node(
+        package="tracker650_ros_driver",
+        executable="tracker650_node",
+        name="tracker650_node",
+        output="screen",
+        respawn=True,
+        respawn_delay=2.0,
+    )
+
+    esp32_node = Node(
+        package="esp32_bench",
+        executable="esp32_node",
+        name="esp32_node",
+        output="screen",
+        respawn=True,
+        respawn_delay=2.0,
+    )
+
+    # localization
     ekf_node = Node(
         package="robot_localization",
         executable="ekf_node",
@@ -33,6 +62,7 @@ def generate_launch_description() -> LaunchDescription:
         respawn_delay=2.0,
     )
 
+    # control
     controller = Node(
         package="loki_control",
         executable="loki_controller",
@@ -43,6 +73,7 @@ def generate_launch_description() -> LaunchDescription:
         respawn_delay=2.0,
     )
 
+    # monitoring
     monitor = Node(
         package="loki_monitor",
         executable="monitor",
@@ -62,9 +93,15 @@ def generate_launch_description() -> LaunchDescription:
     )
 
     return LaunchDescription([
-        ekf_node,
-        #TimerAction(period=1.0, actions=[hw_bridge]),
-        TimerAction(period=2.0, actions=[controller]),
-        TimerAction(period=4.0, actions=[monitor]),
-        TimerAction(period=4.0, actions=[foxglove]),        
+        # hardware drivers
+        imu_node,
+        dvl_node,
+        esp32_node,
+        # EKF
+        TimerAction(period=2.0, actions=[ekf_node]),
+        # control
+        TimerAction(period=4.0, actions=[controller]),
+        # monitoring and foxglove bridge
+        TimerAction(period=6.0, actions=[monitor]),
+        TimerAction(period=6.0, actions=[foxglove]),
     ])
