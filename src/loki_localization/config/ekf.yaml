@@ -1,11 +1,13 @@
-ekf_node:
+ekf_filter:
   ros__parameters:
+    use_sim_time: true
     frequency: 30.0
     two_d_mode: false
     map_frame: map
     odom_frame: odom
     base_link_frame: base_link
     world_frame: odom
+
     imu0: /imu/data
     imu0_config: [false, false, false,
                   true,  true,  true,
@@ -13,6 +15,8 @@ ekf_node:
                   true,  true,  true,
                   false, false, false]
     imu0_remove_gravitational_acceleration: true
+    imu0_noise_in_diagonal_only: true
+
     twist0: /dvl/twist_stamped
     twist0_config: [false, false, false,
                     false, false, false,

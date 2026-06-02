@@ -1,5 +1,7 @@
 """
-  OdometryPublisher.cs publishes to /odometry/filtered
+  LokiGroundTruthPublisher.cs publishes to /ground_truth/odom
+  LokiImuPublisher.cs publishes to /imu/data
+  LokiDvlPublisher.cs publishes to /dvl/twist_stamped
   ActuatorBridge.cs subscribes to /cmd/thruster, /cmd/elevator, /cmd/rudder
   ros2 launch loki_bringup sim.launch.py
 """
@@ -18,11 +20,40 @@ def generate_launch_description() -> LaunchDescription:
         "pid_params.yaml",
     )
 
+    ekf_config = os.path.join(
+        get_package_share_directory("loki_localization"),
+        "config",
+        "ekf.yaml",
+    )
+
     ros_tcp_endpoint = Node(
         package="ros_tcp_endpoint",
         executable="default_server_endpoint",
         name="ros_tcp_endpoint",
         output="screen",
+    )
+
+    # sensors assumed to be at robot centre, to be updated
+    static_tf_imu = Node(
+        package='tf2_ros',
+        executable='static_transform_publisher',
+        name='static_tf_imu',
+        arguments=['0', '0', '0', '0', '0', '0', 'base_link', 'imu_link']
+    )
+
+    static_tf_dvl = Node(
+        package='tf2_ros',
+        executable='static_transform_publisher',
+        name='static_tf_dvl',
+        arguments=['0', '0', '0', '0', '0', '0', 'base_link', 'dvl_link']
+    )
+
+    ekf = Node(
+        package="robot_localization",
+        executable="ekf_node",
+        name="ekf_filter",
+        output="screen",
+        parameters=[ekf_config],
     )
 
     controller = Node(
@@ -56,7 +87,10 @@ def generate_launch_description() -> LaunchDescription:
 
     return LaunchDescription([
         ros_tcp_endpoint,
-        TimerAction(period=2.0, actions=[controller]),
+        static_tf_imu,
+        static_tf_dvl,
+        TimerAction(period=2.0, actions=[ekf]),
+        TimerAction(period=3.0, actions=[controller]),
         TimerAction(period=3.0, actions=[monitor]),
         TimerAction(period=3.0, actions=[foxglove]),
         TimerAction(period=3.0, actions=[step_logger]),

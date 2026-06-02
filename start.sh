@@ -10,6 +10,7 @@ pkill -9 -f "loki_controller"  2>/dev/null
 pkill -9 -f "loki_monitor"     2>/dev/null
 pkill -9 -f "ros_tcp_endpoint" 2>/dev/null
 pkill -9 -f "foxglove_bridge"  2>/dev/null
+pkill -9 -f "ekf_node"         2>/dev/null
 pkill -9 -f "ros2"             2>/dev/null
 ros2 daemon stop 2>/dev/null
 sleep 2
