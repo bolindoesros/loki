@@ -33,7 +33,6 @@ def generate_launch_description() -> LaunchDescription:
         output="screen",
     )
 
-    # sensors assumed to be at robot centre, to be updated
     static_tf_imu = Node(
         package='tf2_ros',
         executable='static_transform_publisher',
