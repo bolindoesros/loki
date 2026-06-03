@@ -1,5 +1,7 @@
 """
   ros2 launch loki_bringup real.launch.py
+
+  note : need to double check with hans
 """
 
 from launch import LaunchDescription
