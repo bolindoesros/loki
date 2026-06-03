@@ -42,7 +42,7 @@ def generate_launch_description() -> LaunchDescription:
     )
 
     # hardware drivers
-    imu_node = Node(
+    imu_node = Node( # publish /imu/data_raw from AHRS
         package="loki_hardware_imu",
         executable="ahrs_orientation",
         name="ahrs_orientation_node",
