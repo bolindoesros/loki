@@ -4,6 +4,7 @@
  */
 
 #include "loki_control/controller.hpp"
+#include "loki_msgs/msg/loki_command.hpp"
 #include <algorithm>
 #include <chrono>
 #include <cmath>
@@ -30,6 +31,7 @@ ControllerNode::ControllerNode()
   target_heading_sub_     = create_subscription<std_msgs::msg::Float64>("/target/heading", qos, std::bind(&ControllerNode::on_target_heading, this, std::placeholders::_1));
   target_speed_sub_       = create_subscription<std_msgs::msg::Float64>("/target/speed", qos, std::bind(&ControllerNode::on_target_speed, this, std::placeholders::_1));
   target_moving_mass_sub_ = create_subscription<std_msgs::msg::Float64>("/target/moving_mass", qos, std::bind(&ControllerNode::on_target_moving_mass, this, std::placeholders::_1));
+  loki_command_sub_       = create_subscription<loki_msgs::msg::LokiCommand>("/loki/command", qos, std::bind(&ControllerNode::on_loki_command, this, std::placeholders::_1));
 
   // ── Actuator publishers ────────────────────────────────────
   thruster_pub_    = create_publisher<std_msgs::msg::Int32>  ("/cmd/thruster",     qos);
@@ -73,6 +75,12 @@ void ControllerNode::on_target_speed(const std_msgs::msg::Float64::SharedPtr msg
 void ControllerNode::on_target_moving_mass(const std_msgs::msg::Float64::SharedPtr msg){
   // Clamp to [0, 0.5] (physical limits) 
   target_moving_mass_ = std::clamp(msg->data, 0.0, 0.5);
+}
+
+void ControllerNode::on_loki_command(const loki_msgs::msg::LokiCommand::SharedPtr msg) {
+    target_depth_       = msg->target_depth;
+    target_speed_       = msg->target_speed;
+    target_moving_mass_ = msg->target_moving_mass;
 }
 
 // arm service callback
@@ -234,7 +242,9 @@ int ControllerNode::effort_to_pwm(double effort)
 
 double ControllerNode::wrap_angle(double deg)
 {
-  return std::fmod(deg + 180.0, 360.0) - 180.0;
+  double wrapped = std::fmod(deg + 180.0, 360.0);
+  if (wrapped < 0.0) wrapped += 360.0;  
+  return wrapped - 180.0;
 }
 
 }  // namespace loki

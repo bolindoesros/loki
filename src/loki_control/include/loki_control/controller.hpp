@@ -33,6 +33,7 @@
 #include <tf2/LinearMath/Matrix3x3.h>
 #include <tf2/LinearMath/Quaternion.h>
 #include "loki_control/pid.hpp"
+#include "loki_msgs/msg/loki_command.hpp"
 
 namespace loki
 {
@@ -53,6 +54,7 @@ private:
   void on_arm(
     const std_srvs::srv::SetBool::Request::SharedPtr req,
     const std_srvs::srv::SetBool::Response::SharedPtr res);
+  void on_loki_command(const loki_msgs::msg::LokiCommand::SharedPtr msg);
 
   // ── Control loop ──────────────────────────────────────────
   void control_loop();
@@ -97,7 +99,8 @@ private:
   rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr  target_heading_sub_;
   rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr  target_speed_sub_;
   rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr  target_moving_mass_sub_;
-
+  rclcpp::Subscription<loki_msgs::msg::LokiCommand>::SharedPtr loki_command_sub_;
+  
   // ── Publishers ────────────────────────────────────────────
   rclcpp::Publisher<std_msgs::msg::Int32>::SharedPtr   thruster_pub_;
   rclcpp::Publisher<std_msgs::msg::Int32>::SharedPtr   elevator_pub_;
