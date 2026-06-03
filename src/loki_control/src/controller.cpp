@@ -14,6 +14,7 @@ namespace loki
 ControllerNode::ControllerNode()
 : Node("loki_controller")
 {
+  // fallback params
   max_pitch_cmd_ = declare_parameter("max_pitch_cmd", 20.0);
   double alpha   = declare_parameter("alpha",          0.7);
 
@@ -24,44 +25,37 @@ ControllerNode::ControllerNode()
 
   auto qos = rclcpp::QoS(10).reliable();
 
-  odom_sub_ = create_subscription<nav_msgs::msg::Odometry>(
-    "/odometry/filtered", qos, std::bind(&ControllerNode::on_odometry, this, std::placeholders::_1));
+  // Subscriptions
+  odom_sub_               = create_subscription<nav_msgs::msg::Odometry>("/odometry/filtered", qos, std::bind(&ControllerNode::on_odometry, this, std::placeholders::_1));
+  target_depth_sub_       = create_subscription<std_msgs::msg::Float64>("/target/depth", qos, std::bind(&ControllerNode::on_target_depth, this, std::placeholders::_1));
+  target_heading_sub_     = create_subscription<std_msgs::msg::Float64>("/target/heading", qos, std::bind(&ControllerNode::on_target_heading, this, std::placeholders::_1));
+  target_speed_sub_       = create_subscription<std_msgs::msg::Float64>("/target/speed", qos, std::bind(&ControllerNode::on_target_speed, this, std::placeholders::_1));
+  target_moving_mass_sub_ = create_subscription<std_msgs::msg::Float64>("/target/moving_mass", qos, std::bind(&ControllerNode::on_target_moving_mass, this, std::placeholders::_1));
 
-  target_depth_sub_ = create_subscription<std_msgs::msg::Float64>(
-    "/target/depth", qos, std::bind(&ControllerNode::on_target_depth, this, std::placeholders::_1));
-
-  target_heading_sub_ = create_subscription<std_msgs::msg::Float64>(
-    "/target/heading", qos, std::bind(&ControllerNode::on_target_heading, this, std::placeholders::_1));
-
-  target_speed_sub_ = create_subscription<std_msgs::msg::Float64>(
-    "/target/speed", qos, std::bind(&ControllerNode::on_target_speed, this, std::placeholders::_1));
-
-  target_moving_mass_sub_ = create_subscription<std_msgs::msg::Float64>(
-    "/target/moving_mass", qos, std::bind(&ControllerNode::on_target_moving_mass, this, std::placeholders::_1));
-
+  // Publishers
   thruster_pub_    = create_publisher<std_msgs::msg::Int32>  ("/cmd/thruster",     qos);
   elevator_pub_    = create_publisher<std_msgs::msg::Int32>  ("/cmd/elevator",     qos);
   rudder_pub_      = create_publisher<std_msgs::msg::Int32>  ("/cmd/rudder",       qos);
   moving_mass_pub_ = create_publisher<std_msgs::msg::Float64>("/cmd/moving_mass",  qos);
   arm_state_pub_   = create_publisher<std_msgs::msg::Bool>   ("/system/arm_state", qos);
 
+  // Monitor publishers
   mon_target_depth_pub_   = create_publisher<std_msgs::msg::Float64>("/monitor/target/depth",       qos);
   mon_target_heading_pub_ = create_publisher<std_msgs::msg::Float64>("/monitor/target/heading",     qos);
   mon_target_speed_pub_   = create_publisher<std_msgs::msg::Float64>("/monitor/target/speed",       qos);
   mon_target_mass_pub_    = create_publisher<std_msgs::msg::Float64>("/monitor/target/moving_mass", qos);
   mon_desired_pitch_pub_  = create_publisher<std_msgs::msg::Float64>("/monitor/desired_pitch",      qos);
 
-  arm_srv_ = create_service<std_srvs::srv::SetBool>(
-    "/system/arm",
-    std::bind(&ControllerNode::on_arm, this,
-      std::placeholders::_1, std::placeholders::_2));
+  // Arm Service
+  arm_srv_ = create_service<std_srvs::srv::SetBool>("/system/arm",
+    std::bind(&ControllerNode::on_arm, this, std::placeholders::_1, std::placeholders::_2));
 
-  timer_ = create_wall_timer(
-    std::chrono::milliseconds(10),
+  timer_ = create_wall_timer(std::chrono::milliseconds(10),
     std::bind(&ControllerNode::control_loop, this));
 
-  last_time_ = now();
-  RCLCPP_INFO(get_logger(), "Loki controller ready — call /system/arm to start");
+  last_time_      = now();
+  last_odom_time_ = now();
+  RCLCPP_INFO(get_logger(), "Loki controller ready!");
 }
 
 void ControllerNode::on_target_depth(const std_msgs::msg::Float64::SharedPtr msg){
@@ -87,8 +81,8 @@ void ControllerNode::on_arm(
   is_armed_ = req->data;
 
   if (is_armed_) {
-    target_heading_     = current_heading_;
-    target_depth_       = current_depth_;
+    target_heading_     = current_heading_; // locks to current heading
+    target_depth_       = current_depth_;   // locks to current depth
     target_speed_       = 0.0;
     target_moving_mass_ = 0.0;
 
@@ -112,6 +106,8 @@ void ControllerNode::on_arm(
 
 void ControllerNode::on_odometry(const nav_msgs::msg::Odometry::SharedPtr msg)
 {
+  last_odom_time_ = now();
+
   current_depth_ = msg->pose.pose.position.z;
   current_speed_ = msg->twist.twist.linear.x;
 
@@ -129,7 +125,7 @@ void ControllerNode::on_odometry(const nav_msgs::msg::Odometry::SharedPtr msg)
   current_heading_    = yaw   * 180.0 / M_PI;
   current_pitch_rate_ = msg->twist.twist.angular.y * 180.0 / M_PI;
 
-  if (current_heading_ < 0.0) current_heading_ += 360.0;
+  if (current_heading_ < 0.0) current_heading_ += 360.0; // heading correction to [0, 360]
 }
 
 void ControllerNode::control_loop()
@@ -137,30 +133,33 @@ void ControllerNode::control_loop()
   auto   t  = now();
   double dt = std::clamp((t - last_time_).seconds(), 1e-4, 0.05);
   last_time_ = t;
-
-  // declare before use — 0.0 when disarmed, real value when armed
   double desired_pitch = 0.0;
 
   publish_f64(mon_target_depth_pub_,   target_depth_);
   publish_f64(mon_target_heading_pub_, target_heading_);
   publish_f64(mon_target_speed_pub_,   target_speed_);
   publish_f64(mon_target_mass_pub_,    target_moving_mass_);
-  publish_f64(mon_desired_pitch_pub_,  desired_pitch);
+
+  if ((now() - last_odom_time_).seconds() > 0.5) {
+    RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1000, "Odometry timeout — disarming");
+    is_armed_ = false;
+  }
 
   if (!is_armed_) {
-    auto i = std_msgs::msg::Int32();   i.data = 1500;
-    auto f = std_msgs::msg::Float64(); f.data = 0.0;
-    thruster_pub_->publish(i);
-    elevator_pub_->publish(i);
-    rudder_pub_->publish(i);
-    moving_mass_pub_->publish(f);
+    auto neutral_pwm = std_msgs::msg::Int32();   neutral_pwm.data = 1500;
+    auto zero_mass   = std_msgs::msg::Float64(); zero_mass.data   = 0.0;
+    thruster_pub_->publish(neutral_pwm);
+    elevator_pub_->publish(neutral_pwm);
+    rudder_pub_->publish(neutral_pwm);
+    moving_mass_pub_->publish(zero_mass);
+    publish_f64(mon_desired_pitch_pub_, 0.0);  // disarmed, no pitch command
     return;
   }
 
   double speed_effort = speed_pid_.compute_control(dt, target_speed_ - current_speed_);
   double yaw_effort   = yaw_pid_.compute_control(dt, wrap_angle(target_heading_ - current_heading_));
 
-  double depth_err = current_depth_ - target_depth_;
+  double depth_err = target_depth_ - current_depth_;
   desired_pitch    = depth_pid_.compute_control(dt, depth_err);
   desired_pitch    = std::clamp(desired_pitch, -max_pitch_cmd_, max_pitch_cmd_);
   publish_f64(mon_desired_pitch_pub_, desired_pitch);  // update with real value
@@ -173,8 +172,8 @@ void ControllerNode::control_loop()
   moving_mass_pub_->publish(mm_msg);
 
   auto t_msg = std_msgs::msg::Int32(); t_msg.data = effort_to_pwm(speed_effort);
-  auto e_msg = std_msgs::msg::Int32(); e_msg.data = effort_to_pwm(pitch_effort);
-  auto r_msg = std_msgs::msg::Int32(); r_msg.data = effort_to_pwm(yaw_effort, true);
+  auto e_msg = std_msgs::msg::Int32(); e_msg.data = effort_to_pwm(pitch_effort, true);
+  auto r_msg = std_msgs::msg::Int32(); r_msg.data = effort_to_pwm(yaw_effort,   true);
 
   thruster_pub_->publish(t_msg);
   elevator_pub_->publish(e_msg);
@@ -194,8 +193,7 @@ PIDParams ControllerNode::load_pid(const std::string & ns, double alpha)
   return p;
 }
 
-void ControllerNode::publish_f64(
-  rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr & pub, double value)
+void ControllerNode::publish_f64(rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr & pub, double value)
 {
   std_msgs::msg::Float64 msg;
   msg.data = value;
@@ -204,8 +202,8 @@ void ControllerNode::publish_f64(
 
 int ControllerNode::effort_to_pwm(double effort, bool invert)
 {
-  int pwm = 1500 + (invert ? -1 : 1) * static_cast<int>(effort);
-  return std::clamp(pwm, 1100, 1900);
+  if (invert) return std::clamp(1500 - static_cast<int>(effort), 1100, 1900);
+  return std::clamp(1500 + static_cast<int>(effort), 1100, 1900);
 }
 
 double ControllerNode::wrap_angle(double deg)

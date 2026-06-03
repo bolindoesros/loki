@@ -58,19 +58,19 @@ private:
   void          publish_f64(
     rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr & pub, double value);
 
-  // ── Vehicle state ────────────────────────────────────────────────────────
+  // ── State ──────────────────────────────────────────────────────────────
   bool   is_armed_           = false;
-  double current_depth_      = 0.0;   
-  double current_heading_    = 0.0;   
-  double current_pitch_      = 0.0;   
-  double current_speed_      = 0.0;   
-  double current_pitch_rate_ = 0.0;   
+  double current_depth_      = 0.0;
+  double current_heading_    = 0.0;
+  double current_pitch_      = 0.0;
+  double current_speed_      = 0.0;
+  double current_pitch_rate_ = 0.0;
 
   // ── Targets ─────────────────────────────────────────────────────────────
   double target_depth_       = 0.0;
   double target_heading_     = 0.0;
   double target_speed_       = 0.0;
-  double target_moving_mass_ = 0.0;   
+  double target_moving_mass_ = 0.0;
 
   // ── PID controllers ───────────────────────────────────────────────────────
   PID speed_pid_;
@@ -79,10 +79,11 @@ private:
   PID pitch_pid_;
 
   // ── Parameters ────────────────────────────────────────────────────────────
-  double max_pitch_cmd_;  
+  double max_pitch_cmd_;
 
   // ── Timing ────────────────────────────────────────────────────────────────
   rclcpp::Time last_time_;
+  rclcpp::Time last_odom_time_;
 
   // ── Subscriptions ─────────────────────────────────────────────────────────
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr  odom_sub_;
@@ -97,14 +98,14 @@ private:
   rclcpp::Publisher<std_msgs::msg::Int32>::SharedPtr   rudder_pub_;
   rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr moving_mass_pub_;
   rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr    arm_state_pub_;
-  
+
   // ── Monitor publishers  ────────────────────────────────────────────────────
   rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr mon_target_depth_pub_;
   rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr mon_target_heading_pub_;
   rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr mon_target_speed_pub_;
   rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr mon_target_mass_pub_;
   rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr mon_desired_pitch_pub_;
-  
+
   // ── Service and Timer ───────────────────────────────────────────────────────
   rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr arm_srv_;
   rclcpp::TimerBase::SharedPtr timer_;
