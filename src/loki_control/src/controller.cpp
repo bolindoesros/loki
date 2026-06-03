@@ -1,6 +1,6 @@
 /*
  * @file controller.cpp
- * @brief Cascaded PID controller for loki auv.
+ * @brief PID controller for loki auv.
  */
 
 #include "loki_control/controller.hpp"
@@ -10,14 +10,13 @@
 
 namespace loki
 {
-
 ControllerNode::ControllerNode()
 : Node("loki_controller")
 {
-  // fallback params
   max_pitch_cmd_ = declare_parameter("max_pitch_cmd", 20.0);
   double alpha   = declare_parameter("alpha",          0.7);
 
+  // load PID params
   speed_pid_.update_params(load_pid("speed", alpha));
   yaw_pid_.update_params(load_pid("yaw",     alpha));
   depth_pid_.update_params(load_pid("depth", alpha));
@@ -25,28 +24,28 @@ ControllerNode::ControllerNode()
 
   auto qos = rclcpp::QoS(10).reliable();
 
-  // Subscriptions
+  // ── Subscriptions ──────────────────────────────────────────
   odom_sub_               = create_subscription<nav_msgs::msg::Odometry>("/odometry/filtered", qos, std::bind(&ControllerNode::on_odometry, this, std::placeholders::_1));
   target_depth_sub_       = create_subscription<std_msgs::msg::Float64>("/target/depth", qos, std::bind(&ControllerNode::on_target_depth, this, std::placeholders::_1));
   target_heading_sub_     = create_subscription<std_msgs::msg::Float64>("/target/heading", qos, std::bind(&ControllerNode::on_target_heading, this, std::placeholders::_1));
   target_speed_sub_       = create_subscription<std_msgs::msg::Float64>("/target/speed", qos, std::bind(&ControllerNode::on_target_speed, this, std::placeholders::_1));
   target_moving_mass_sub_ = create_subscription<std_msgs::msg::Float64>("/target/moving_mass", qos, std::bind(&ControllerNode::on_target_moving_mass, this, std::placeholders::_1));
 
-  // Publishers
+  // ── Actuator publishers ────────────────────────────────────
   thruster_pub_    = create_publisher<std_msgs::msg::Int32>  ("/cmd/thruster",     qos);
   elevator_pub_    = create_publisher<std_msgs::msg::Int32>  ("/cmd/elevator",     qos);
   rudder_pub_      = create_publisher<std_msgs::msg::Int32>  ("/cmd/rudder",       qos);
   moving_mass_pub_ = create_publisher<std_msgs::msg::Float64>("/cmd/moving_mass",  qos);
   arm_state_pub_   = create_publisher<std_msgs::msg::Bool>   ("/system/arm_state", qos);
 
-  // Monitor publishers
+  // ── Monitor publishers ─────────────────────────────────────
   mon_target_depth_pub_   = create_publisher<std_msgs::msg::Float64>("/monitor/target/depth",       qos);
   mon_target_heading_pub_ = create_publisher<std_msgs::msg::Float64>("/monitor/target/heading",     qos);
   mon_target_speed_pub_   = create_publisher<std_msgs::msg::Float64>("/monitor/target/speed",       qos);
   mon_target_mass_pub_    = create_publisher<std_msgs::msg::Float64>("/monitor/target/moving_mass", qos);
   mon_desired_pitch_pub_  = create_publisher<std_msgs::msg::Float64>("/monitor/desired_pitch",      qos);
 
-  // Arm Service
+  // ── Arm service ────────────────────────────────────────────
   arm_srv_ = create_service<std_srvs::srv::SetBool>("/system/arm",
     std::bind(&ControllerNode::on_arm, this, std::placeholders::_1, std::placeholders::_2));
 
@@ -58,6 +57,7 @@ ControllerNode::ControllerNode()
   RCLCPP_INFO(get_logger(), "Loki controller ready!");
 }
 
+// subscriptions callbacks
 void ControllerNode::on_target_depth(const std_msgs::msg::Float64::SharedPtr msg){
   target_depth_ = msg->data;
 }
@@ -71,9 +71,11 @@ void ControllerNode::on_target_speed(const std_msgs::msg::Float64::SharedPtr msg
 }
 
 void ControllerNode::on_target_moving_mass(const std_msgs::msg::Float64::SharedPtr msg){
-  target_moving_mass_ = std::clamp(msg->data, 0.0, 1.0);
+  // Clamp to [0, 0.5] (physical limits) 
+  target_moving_mass_ = std::clamp(msg->data, 0.0, 0.5);
 }
 
+// arm service callback
 void ControllerNode::on_arm(
   const std_srvs::srv::SetBool::Request::SharedPtr req,
   const std_srvs::srv::SetBool::Response::SharedPtr res)
@@ -81,8 +83,8 @@ void ControllerNode::on_arm(
   is_armed_ = req->data;
 
   if (is_armed_) {
-    target_heading_     = current_heading_; // locks to current heading
-    target_depth_       = current_depth_;   // locks to current depth
+    target_heading_     = current_heading_;
+    target_depth_       = current_depth_;
     target_speed_       = 0.0;
     target_moving_mass_ = 0.0;
 
@@ -104,9 +106,10 @@ void ControllerNode::on_arm(
   arm_state_pub_->publish(msg);
 }
 
+
 void ControllerNode::on_odometry(const nav_msgs::msg::Odometry::SharedPtr msg)
 {
-  last_odom_time_ = now();
+  last_odom_time_ = now(); 
 
   current_depth_ = msg->pose.pose.position.z;
   current_speed_ = msg->twist.twist.linear.x;
@@ -123,28 +126,46 @@ void ControllerNode::on_odometry(const nav_msgs::msg::Odometry::SharedPtr msg)
 
   current_pitch_      = pitch * 180.0 / M_PI;
   current_heading_    = yaw   * 180.0 / M_PI;
-  current_pitch_rate_ = msg->twist.twist.angular.y * 180.0 / M_PI;
+  current_pitch_rate_ = msg->twist.twist.angular.y * 180.0 / M_PI;  // derivative damping in pitch loop
 
-  if (current_heading_ < 0.0) current_heading_ += 360.0; // heading correction to [0, 360]
+  // Normalise to [0, 360] — wrap_angle() handles the error wrapping in the yaw loop.
+  if (current_heading_ < 0.0) current_heading_ += 360.0;
 }
+
+// ─────────────────────────────────────────────────────────────
+// Control loop 
+// Execution order:
+//   1. Publish monitor echoes  
+//   2. Safety watchdog         
+//   3. Disarmed path  // early exit if disarm triggered by watchdog or arm service        
+//   4. Speed loop      
+//   5. Yaw loop    
+//   6. Depth loop  
+//   7. Pitch loop 
+//   8. Publish actuator commands
+// ─────────────────────────────────────────────────────────────
 
 void ControllerNode::control_loop()
 {
   auto   t  = now();
   double dt = std::clamp((t - last_time_).seconds(), 1e-4, 0.05);
   last_time_ = t;
-  double desired_pitch = 0.0;
+  double desired_pitch = 0.0;  // outer loop output -> inner loop target
 
+  // ── 1. Monitoring ──────────────────────────────────────
   publish_f64(mon_target_depth_pub_,   target_depth_);
   publish_f64(mon_target_heading_pub_, target_heading_);
   publish_f64(mon_target_speed_pub_,   target_speed_);
   publish_f64(mon_target_mass_pub_,    target_moving_mass_);
 
+  // ── 2. Safety watchdog ─────────────────────────────────────
+  // if no odom recieved for 0.5s, disarm triggered by watchdog, all actuators to neutral
   if ((now() - last_odom_time_).seconds() > 0.5) {
     RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1000, "Odometry timeout — disarming");
     is_armed_ = false;
   }
 
+  // ── 3. Emergency Disarm ───────────────────────────────────────
   if (!is_armed_) {
     auto neutral_pwm = std_msgs::msg::Int32();   neutral_pwm.data = 1500;
     auto zero_mass   = std_msgs::msg::Float64(); zero_mass.data   = 0.0;
@@ -152,28 +173,34 @@ void ControllerNode::control_loop()
     elevator_pub_->publish(neutral_pwm);
     rudder_pub_->publish(neutral_pwm);
     moving_mass_pub_->publish(zero_mass);
-    publish_f64(mon_desired_pitch_pub_, 0.0);  // disarmed, no pitch command
+    publish_f64(mon_desired_pitch_pub_, 0.0);
     return;
   }
 
+  // ── 4. Speed loop ─────────────────────────────
   double speed_effort = speed_pid_.compute_control(dt, target_speed_ - current_speed_);
-  double yaw_effort   = yaw_pid_.compute_control(dt, wrap_angle(target_heading_ - current_heading_));
 
+  // ── 5. Yaw loop  ───────────────────────────────
+  double yaw_effort = yaw_pid_.compute_control(dt, wrap_angle(target_heading_ - current_heading_));
+
+  // ── 6. Depth loop (outer loop) ──────────────────────────
   double depth_err = current_depth_ - target_depth_;
   desired_pitch    = depth_pid_.compute_control(dt, depth_err);
   desired_pitch    = std::clamp(desired_pitch, -max_pitch_cmd_, max_pitch_cmd_);
-  publish_f64(mon_desired_pitch_pub_, desired_pitch);  // update with real value
+  publish_f64(mon_desired_pitch_pub_, desired_pitch);  // publish for cascade tuning
 
+  // ── 7. Pitch loop (inner loop) ──────────────────────────
   double pitch_effort = pitch_pid_.compute_control(
       dt, desired_pitch - current_pitch_, -current_pitch_rate_);
 
+  // ── 8. Actuator outputs ────────────────────────────────────
   auto mm_msg = std_msgs::msg::Float64();
   mm_msg.data = target_moving_mass_;
   moving_mass_pub_->publish(mm_msg);
 
-  auto t_msg = std_msgs::msg::Int32(); t_msg.data = effort_to_pwm(speed_effort);
-  auto e_msg = std_msgs::msg::Int32(); e_msg.data = effort_to_pwm(pitch_effort);
-  auto r_msg = std_msgs::msg::Int32(); r_msg.data = effort_to_pwm(yaw_effort);
+  auto t_msg = std_msgs::msg::Int32(); t_msg.data = effort_to_pwm(speed_effort);  // thruster
+  auto e_msg = std_msgs::msg::Int32(); e_msg.data = effort_to_pwm(pitch_effort);  // elevator
+  auto r_msg = std_msgs::msg::Int32(); r_msg.data = effort_to_pwm(yaw_effort);    // rudder
 
   thruster_pub_->publish(t_msg);
   elevator_pub_->publish(e_msg);
