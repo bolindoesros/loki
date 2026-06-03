@@ -19,21 +19,21 @@ class MonitorNode(Node):
         qos = QoSProfile(depth=10, reliability=ReliabilityPolicy.RELIABLE)
 
         self._pub = {
-            # state
+            # vehicle state (derived from odometry/filtered)
             "depth":           self.create_publisher(Float64, "/monitor/depth",           qos),
             "pitch":           self.create_publisher(Float64, "/monitor/pitch_deg",       qos),
             "roll":            self.create_publisher(Float64, "/monitor/roll_deg",        qos),
             "heading":         self.create_publisher(Float64, "/monitor/heading_deg",     qos),
             "speed":           self.create_publisher(Float64, "/monitor/speed",           qos),
             "armed":           self.create_publisher(Float64, "/monitor/armed",           qos),
-            # commands, cmd_thruster/elevator/rudder are in PWM, cmd_moving_mass is distance
+            # commands, cmd_thruster/elevator/rudder are in PWM, cmd_moving_mass is distance (m)
             "cmd_thruster":    self.create_publisher(Float64, "/monitor/cmd/thruster",    qos),
             "cmd_elevator":    self.create_publisher(Float64, "/monitor/cmd/elevator",    qos),
             "cmd_rudder":      self.create_publisher(Float64, "/monitor/cmd/rudder",      qos),
             "cmd_moving_mass": self.create_publisher(Float64, "/monitor/cmd/moving_mass", qos),
         }
 
-        # state
+        # vehicle state
         self.create_subscription(Odometry, "/odometry/filtered",  self._on_odom,        qos)
         self.create_subscription(Bool,     "/system/arm_state",   self._on_arm_state,   qos)
         # commands
@@ -59,7 +59,8 @@ class MonitorNode(Node):
         self._pub_f("heading", self._yaw_to_heading(yaw))
 
     def _yaw_to_heading(self, yaw: float) -> float:
-        # convert yaw (radians) to degrees and normalize to 0- 360
+        # yaw from atan2 is in [-pi, pi] radians
+        # convert to degrees then shift negative values to get compass range of to 0 - 360
         heading = math.degrees(yaw)
         if heading < 0.0:
             heading += 360.0
