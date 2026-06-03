@@ -40,8 +40,6 @@ class StepLogger(Node):
         # log at 10Hz
         self.create_timer(0.1, self._log)
 
-        self.get_logger().info("StepLogger ready — send a depth command to start logging")
-
     def _cb(self, key: str):
         def callback(msg: Float64):
             self._state[key] = msg.data

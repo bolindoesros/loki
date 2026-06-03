@@ -38,13 +38,15 @@ def generate_launch_description() -> LaunchDescription:
         executable='static_transform_publisher',
         name='static_tf_imu',
         arguments=['0', '0', '0', '0', '0', '0', 'base_link', 'imu_link']
+                 #  x    y    z   yaw pitch roll   parent       child
     )
-
+    
     static_tf_dvl = Node(
         package='tf2_ros',
         executable='static_transform_publisher',
         name='static_tf_dvl',
         arguments=['0', '0', '0', '0', '0', '0', 'base_link', 'dvl_link']
+                 #  x    y    z   yaw pitch roll   parent       child
     )
 
     ekf = Node(
@@ -77,13 +79,6 @@ def generate_launch_description() -> LaunchDescription:
         output="screen",
     )
 
-    step_logger = Node(
-        package="loki_monitor",
-        executable="step_logger",
-        name="step_logger",
-        output="screen",
-    )
-
     return LaunchDescription([
         ros_tcp_endpoint,
         static_tf_imu,
@@ -92,5 +87,4 @@ def generate_launch_description() -> LaunchDescription:
         TimerAction(period=3.0, actions=[controller]),
         TimerAction(period=3.0, actions=[monitor]),
         TimerAction(period=3.0, actions=[foxglove]),
-        TimerAction(period=3.0, actions=[step_logger]),
     ])
