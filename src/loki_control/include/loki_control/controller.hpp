@@ -52,7 +52,7 @@ private:
     const std_srvs::srv::SetBool::Response::SharedPtr res);
   void control_loop();
 
-  static int    effort_to_pwm(double effort, bool invert = false);
+  static int    effort_to_pwm(double effort);
   static double wrap_angle(double deg);
   PIDParams     load_pid(const std::string & ns, double alpha);
   void          publish_f64(

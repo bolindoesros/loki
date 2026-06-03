@@ -200,17 +200,14 @@ void ControllerNode::publish_f64(rclcpp::Publisher<std_msgs::msg::Float64>::Shar
   pub->publish(msg);
 }
 
-int ControllerNode::effort_to_pwm(double effort, bool invert)
+int ControllerNode::effort_to_pwm(double effort)
 {
-  if (invert) return std::clamp(1500 - static_cast<int>(effort), 1100, 1900);
   return std::clamp(1500 + static_cast<int>(effort), 1100, 1900);
 }
 
 double ControllerNode::wrap_angle(double deg)
 {
-  while (deg >  180.0) deg -= 360.0;
-  while (deg < -180.0) deg += 360.0;
-  return deg;
+  return std::fmod(deg + 180.0, 360.0) - 180.0;
 }
 
 }  // namespace loki
