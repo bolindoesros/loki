@@ -44,6 +44,7 @@ alias speed="f(){ ros2 topic pub --once /target/speed std_msgs/msg/Float64 \"{da
 alias heading="f(){ ros2 topic pub --once /target/heading std_msgs/msg/Float64 \"{data: \$1}\"; unset -f f; }; f"
 alias mass="f(){ ros2 topic pub --once /target/moving_mass std_msgs/msg/Float64 \"{data: \$1}\"; unset -f f; }; f"
 alias circle="python3 ~/loki_ws/src/loki_localization/scripts/circle_test.py"
+alias box="python3 ~/loki_ws/src/loki_localization/scripts/box_test.py"
 clear
 ' C-m
 

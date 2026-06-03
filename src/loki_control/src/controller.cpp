@@ -159,7 +159,7 @@ void ControllerNode::control_loop()
   double speed_effort = speed_pid_.compute_control(dt, target_speed_ - current_speed_);
   double yaw_effort   = yaw_pid_.compute_control(dt, wrap_angle(target_heading_ - current_heading_));
 
-  double depth_err = target_depth_ - current_depth_;
+  double depth_err = current_depth_ - target_depth_;
   desired_pitch    = depth_pid_.compute_control(dt, depth_err);
   desired_pitch    = std::clamp(desired_pitch, -max_pitch_cmd_, max_pitch_cmd_);
   publish_f64(mon_desired_pitch_pub_, desired_pitch);  // update with real value
@@ -172,7 +172,7 @@ void ControllerNode::control_loop()
   moving_mass_pub_->publish(mm_msg);
 
   auto t_msg = std_msgs::msg::Int32(); t_msg.data = effort_to_pwm(speed_effort);
-  auto e_msg = std_msgs::msg::Int32(); e_msg.data = effort_to_pwm(pitch_effort, true);
+  auto e_msg = std_msgs::msg::Int32(); e_msg.data = effort_to_pwm(pitch_effort);
   auto r_msg = std_msgs::msg::Int32(); r_msg.data = effort_to_pwm(yaw_effort);
 
   thruster_pub_->publish(t_msg);

@@ -9,7 +9,7 @@ class CircleTest(Node):
         super().__init__('circle_test')
 
         self.speed_ms    = self.declare_parameter('speed',    1.0).value
-        self.yaw_rate    = self.declare_parameter('yaw_rate', 10.0).value
+        self.yaw_rate    = self.declare_parameter('yaw_rate', 20.0).value
         self.depth_m     = self.declare_parameter('depth',    1.0).value
         self.num_circles = self.declare_parameter('circles',  5).value
 
