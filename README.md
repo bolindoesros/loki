@@ -1,6 +1,9 @@
 # loki auv workspace
 
 Demo video : https://youtu.be/YzWAewJNzD0
+Demo dive results :
+
+<img width="2549" height="1288" alt="image" src="https://github.com/user-attachments/assets/ea3e955b-1551-42dd-913e-2bde363c96dd" />
 
 ## packages
 
