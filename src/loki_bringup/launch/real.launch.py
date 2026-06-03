@@ -51,6 +51,21 @@ def generate_launch_description() -> LaunchDescription:
         respawn_delay=2.0,
     )
 
+    # filter 
+    madgwick = Node(
+        package='imu_filter_madgwick',
+        executable='imu_filter_madgwick_node',
+        name='imu_filter',
+        output='screen',
+        parameters=[{'use_mag': False, 'use_sim_time': False}],
+        remappings=[
+            ('/imu/data_raw', '/imu/data_raw'),
+            ('/imu/data',     '/imu/data'),
+        ],
+        respawn=True,
+        respawn_delay=2.0,
+    )
+
     dvl_receiver = Node(
         package="loki_hardware_dvl",
         executable="tracker650_receiver",
@@ -84,7 +99,7 @@ def generate_launch_description() -> LaunchDescription:
         executable="ekf_node",
         name="ekf_node",
         output="screen",
-        parameters=[ekf_params],
+        parameters=[ekf_params, {'use_sim_time': False}],
         respawn=True,
         respawn_delay=2.0,
     )
@@ -124,6 +139,7 @@ def generate_launch_description() -> LaunchDescription:
         robot_state_publisher,
         # hardware drivers
         imu_node,
+        madgwick,           
         dvl_receiver,
         dvl_republisher,
         hw_bridge,
