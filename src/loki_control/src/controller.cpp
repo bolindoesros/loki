@@ -173,7 +173,7 @@ void ControllerNode::control_loop()
 
   auto t_msg = std_msgs::msg::Int32(); t_msg.data = effort_to_pwm(speed_effort);
   auto e_msg = std_msgs::msg::Int32(); e_msg.data = effort_to_pwm(pitch_effort, true);
-  auto r_msg = std_msgs::msg::Int32(); r_msg.data = effort_to_pwm(yaw_effort,   true);
+  auto r_msg = std_msgs::msg::Int32(); r_msg.data = effort_to_pwm(yaw_effort);
 
   thruster_pub_->publish(t_msg);
   elevator_pub_->publish(e_msg);
