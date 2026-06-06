@@ -11,6 +11,11 @@
 
 namespace loki
 {
+
+// Timer periods
+static constexpr int OUTER_LOOP_MS = 50;   // 20Hz — depth PID (outer cascade)
+static constexpr int INNER_LOOP_MS = 10;   // 100Hz — pitch, speed, yaw PIDs (inner cascade)
+
 ControllerNode::ControllerNode()
 : Node("loki_controller")
 {
@@ -51,11 +56,18 @@ ControllerNode::ControllerNode()
   arm_srv_ = create_service<std_srvs::srv::SetBool>("/system/arm",
     std::bind(&ControllerNode::on_arm, this, std::placeholders::_1, std::placeholders::_2));
 
-  timer_ = create_wall_timer(std::chrono::milliseconds(10),
-    std::bind(&ControllerNode::control_loop, this));
+  // ── Timers ─────────────────────────────────────────────────
+  outer_timer_ = create_wall_timer(
+    std::chrono::milliseconds(OUTER_LOOP_MS),
+    std::bind(&ControllerNode::outer_loop, this));
 
-  last_time_      = now();
-  last_odom_time_ = now();
+  inner_timer_ = create_wall_timer(
+    std::chrono::milliseconds(INNER_LOOP_MS),
+    std::bind(&ControllerNode::inner_loop, this));
+
+  last_time_outer_ = now();
+  last_time_inner_ = now();
+  last_odom_time_  = now();
   RCLCPP_INFO(get_logger(), "Loki controller ready!");
 }
 
@@ -73,14 +85,14 @@ void ControllerNode::on_target_speed(const std_msgs::msg::Float64::SharedPtr msg
 }
 
 void ControllerNode::on_target_moving_mass(const std_msgs::msg::Float64::SharedPtr msg){
-  // Clamp to [0, 0.5] (physical limits) 
+  // Clamp to [0, 0.5] (physical limits)
   target_moving_mass_ = std::clamp(msg->data, 0.0, 0.5);
 }
 
 void ControllerNode::on_loki_command(const loki_msgs::msg::LokiCommand::SharedPtr msg) {
-    target_depth_       = msg->target_depth;
-    target_speed_       = msg->target_speed;
-    target_moving_mass_ = msg->target_moving_mass;
+  target_depth_       = msg->target_depth;
+  target_speed_       = msg->target_speed;
+  target_moving_mass_ = msg->target_moving_mass;
 }
 
 // arm service callback
@@ -114,10 +126,9 @@ void ControllerNode::on_arm(
   arm_state_pub_->publish(msg);
 }
 
-
 void ControllerNode::on_odometry(const nav_msgs::msg::Odometry::SharedPtr msg)
 {
-  last_odom_time_ = now(); 
+  last_odom_time_ = now();
 
   current_depth_ = msg->pose.pose.position.z;
   current_speed_ = msg->twist.twist.linear.x;
@@ -140,40 +151,43 @@ void ControllerNode::on_odometry(const nav_msgs::msg::Odometry::SharedPtr msg)
   if (current_heading_ < 0.0) current_heading_ += 360.0;
 }
 
-// ─────────────────────────────────────────────────────────────
-// Control loop 
-// Execution order:
-//   1. Publish monitor echoes  
-//   2. Safety watchdog         
-//   3. Disarmed path  // early exit if disarm triggered by watchdog or arm service        
-//   4. Speed loop      
-//   5. Yaw loop    
-//   6. Depth loop  
-//   7. Pitch loop 
-//   8. Publish actuator commands
-// ─────────────────────────────────────────────────────────────
-
-void ControllerNode::control_loop()
+// outer loop runs at 20Hz, computes depth PID (outer cascade) and updates desired pitch
+void ControllerNode::outer_loop()
 {
   auto   t  = now();
-  double dt = std::clamp((t - last_time_).seconds(), 1e-4, 0.05);
-  last_time_ = t;
-  double desired_pitch = 0.0;  // outer loop output -> inner loop target
+  double dt = std::clamp((t - last_time_outer_).seconds(), 1e-4, 0.1);
+  last_time_outer_ = t;
 
-  // ── 1. Monitoring ──────────────────────────────────────
+  // ── 1. Safety watchdog ─────────────────────────────────────
+  // if no odom recieved for 2.0s, disarm triggered by watchdog, all actuators to neutral
+  if ((now() - last_odom_time_).seconds() > 2.0) {
+    RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1000, "Odometry timeout — disarming");
+    is_armed_ = false;
+  }
+
+  // ── 2. Monitoring ──────────────────────────────────────────
   publish_f64(mon_target_depth_pub_,   target_depth_);
   publish_f64(mon_target_heading_pub_, target_heading_);
   publish_f64(mon_target_speed_pub_,   target_speed_);
   publish_f64(mon_target_mass_pub_,    target_moving_mass_);
 
-  // ── 2. Safety watchdog ─────────────────────────────────────
-  // if no odom recieved for 0.5s, disarm triggered by watchdog, all actuators to neutral
-  if ((now() - last_odom_time_).seconds() > 0.5) {
-    RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1000, "Odometry timeout — disarming");
-    is_armed_ = false;
-  }
+  if (!is_armed_) return;  // inner loop handles neutral outputs
 
-  // ── 3. Emergency Disarm ───────────────────────────────────────
+  // ── 3. Depth loop (outer cascade) ──────────────────────────
+  double depth_err = current_depth_ - target_depth_;
+  desired_pitch_   = depth_pid_.compute_control(dt, depth_err);
+  desired_pitch_   = std::clamp(desired_pitch_, -max_pitch_cmd_, max_pitch_cmd_);
+  publish_f64(mon_desired_pitch_pub_, desired_pitch_);  // publish for cascade tuning
+}
+
+// inner loop runs at 100Hz, computes speed, yaw, and pitch PIDs (inner cascade) and updates actuator commands
+void ControllerNode::inner_loop()
+{
+  auto   t  = now();
+  double dt = std::clamp((t - last_time_inner_).seconds(), 1e-4, 0.05);
+  last_time_inner_ = t;
+
+  // ── 1. Emergency Disarm ────────────────────────────────────
   if (!is_armed_) {
     auto neutral_pwm = std_msgs::msg::Int32();   neutral_pwm.data = 1500;
     auto zero_mass   = std_msgs::msg::Float64(); zero_mass.data   = 0.0;
@@ -185,23 +199,17 @@ void ControllerNode::control_loop()
     return;
   }
 
-  // ── 4. Speed loop ─────────────────────────────
+  // ── 2. Speed loop ──────────────────────────────────────────
   double speed_effort = speed_pid_.compute_control(dt, target_speed_ - current_speed_);
 
-  // ── 5. Yaw loop  ───────────────────────────────
+  // ── 3. Yaw loop ────────────────────────────────────────────
   double yaw_effort = yaw_pid_.compute_control(dt, wrap_angle(target_heading_ - current_heading_));
 
-  // ── 6. Depth loop (outer loop) ──────────────────────────
-  double depth_err = current_depth_ - target_depth_;
-  desired_pitch    = depth_pid_.compute_control(dt, depth_err);
-  desired_pitch    = std::clamp(desired_pitch, -max_pitch_cmd_, max_pitch_cmd_);
-  publish_f64(mon_desired_pitch_pub_, desired_pitch);  // publish for cascade tuning
-
-  // ── 7. Pitch loop (inner loop) ──────────────────────────
+  // ── 4. Pitch loop (inner cascade) ──────────────────────────
   double pitch_effort = pitch_pid_.compute_control(
-      dt, desired_pitch - current_pitch_, -current_pitch_rate_);
+      dt, desired_pitch_ - current_pitch_, -current_pitch_rate_);
 
-  // ── 8. Actuator outputs ────────────────────────────────────
+  // ── 5. Actuator outputs ────────────────────────────────────
   auto mm_msg = std_msgs::msg::Float64();
   mm_msg.data = target_moving_mass_;
   moving_mass_pub_->publish(mm_msg);
@@ -243,7 +251,7 @@ int ControllerNode::effort_to_pwm(double effort)
 double ControllerNode::wrap_angle(double deg)
 {
   double wrapped = std::fmod(deg + 180.0, 360.0);
-  if (wrapped < 0.0) wrapped += 360.0;  
+  if (wrapped < 0.0) wrapped += 360.0;
   return wrapped - 180.0;
 }
 
