@@ -1,45 +1,49 @@
+```
 diagram of data flow
 ┌───────────────────────────────────────────────────────┐
 │                        ESP32                          │
 │      IMU          Pressure Sensor          DVL        │
 └──────────────────────────┬────────────────────────────┘
-                     esp/raw_sensor             
-                ┌──────────┴────────────┐
-                ▼                       ▼
-    ┌─────────────────────┐    ┌─────────────────────┐
-    │  loki_hardware_imu  │    │  loki_hardware_dvl  │
-    └──┬──────────────┬───┘    └──────────┬──────────┘
-    /imu/data_raw   /pressure/raw  /dvl/twist_stamped
-    /imu/mag          │                   │
-       ▼              ▼                   │
-    ┌─────────────┐ ┌───────────────────┐ │
-    │   Madgwick  │ │ pressure_to_depth │ │  
-    │   Filter    │ └──────┬────────────┘ │
-    └──────┬──────┘        │              │
-       /imu/data      /depth/pose         │
-           └───────────────┴──────────────┘
-                           │
-                           ▼
+                      esp/raw_sensor
+               ┌──────────┴────────────┐
+               ▼                       ▼
+┌─────────────────────┐ ┌─────────────────────┐
+│  loki_hardware_imu  │ │  loki_hardware_dvl  │
+└──┬──────────────┬───┘ └──────────┬──────────┘
+/imu/data_raw  /pressure/raw  /dvl/twist_stamped
+/imu/mag            │                │
+      │             ▼                │
+      ▼    ┌───────────────────┐     │
+┌─────────────┐ │ pressure_to_depth │     │
+│   Madgwick  │ └──────┬────────────┘     │
+│   Filter    │        │                  │
+└──────┬──────┘        │                  │
+       │               │                  │
+   /imu/data      /depth/pose             │
+       └───────────────┴──────────────────┘
+                       │
+                       ▼
 ┌───────────────────────────────────────────────────────┐
-│                  loki_localization                    │
-│               EKF → /odometry/filtered                │
+│                   loki_localization                   │
+│                 EKF → /odometry/filtered              │
 └──────────────────────────┬────────────────────────────┘
                            ▼
 ┌───────────────────────────────────────────────────────┐
-│                    loki_control                       │
+│                     loki_control                      │
 │                                                       │
-│           Speed  → PI  → /cmd/thruster  (PWM)         │
-│           Yaw    → PI  → /cmd/rudder    (PWM)         │
-│           Depth  → PID → desired_pitch  (Deg)         │
-│           Pitch  → P   → /cmd/elevator  (PWM)         │
-│           Mass         → /cmd/moving_mass (m)         │
+│       Speed  → PI  → /cmd/thruster    (PWM)           │
+│       Yaw    → PI  → /cmd/rudder      (PWM)           │
+│       Depth  → PID → desired_pitch    (Deg)           │
+│       Pitch  → P   → /cmd/elevator    (PWM)           │
+│       Mass         → /cmd/moving_mass (m)             │
 └──────────────────────────┬────────────────────────────┘
                            ▼
 ┌───────────────────────────────────────────────────────┐
-│                    loki_hardware                      │
-│                    hw_bridge.py                       │
+│                     loki_hardware                     │
+│                     hw_bridge.py                      │
 └──────────────────────────┬────────────────────────────┘
                            ▼
 ┌───────────────────────────────────────────────────────┐
-│                      Actuators                        │
+│                       Actuators                       │
 └───────────────────────────────────────────────────────┘
+```
