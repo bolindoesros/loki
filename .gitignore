@@ -6,4 +6,3 @@ __pycache__/
 *.egg-info/
 .colcon_install_layout
 *.csv
-CLAUDE.md
