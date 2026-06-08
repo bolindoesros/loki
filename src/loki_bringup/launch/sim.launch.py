@@ -14,17 +14,10 @@ import os
 
 def generate_launch_description() -> LaunchDescription:
 
-    pid_params = os.path.join(
-        get_package_share_directory("loki_control"),
-        "config",
-        "pid_params.yaml",
-    )
+    config_dir = get_package_share_directory("loki_bringup")
 
-    ekf_config = os.path.join(
-        get_package_share_directory("loki_localization"),
-        "config",
-        "ekf.yaml",
-    )
+    pid_params = os.path.join(config_dir, "config", "pid_params.yaml")
+    ekf_config  = os.path.join(config_dir, "config", "ekf.yaml")
 
     ros_tcp_endpoint = Node(
         package="ros_tcp_endpoint",

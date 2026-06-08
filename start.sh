@@ -24,7 +24,7 @@ echo "Building..."
 cd "$WS"
 source /opt/ros/jazzy/setup.bash
 source "$HOME/auv_demo_ws/install/setup.bash"
-colcon build --packages-select loki_control loki_monitor loki_hardware loki_hardware_imu loki_hardware_dvl loki_localization loki_description loki_msgs loki_bringup
+colcon build --packages-select loki_msgs loki_control loki_monitor loki_hardware loki_icm loki_cerulean loki_bringup
 source "$WS/install/setup.bash"
 echo "Build done."
 sleep 1
@@ -34,7 +34,7 @@ tmux split-window -v -t "$SESSION"
 
 # Pane 0: launch + path publisher
 tmux send-keys -t "$SESSION:0.0" \
-  "$SRC && ros2 launch loki_bringup sim.launch.py & sleep 8 && python3 $WS/src/loki_localization/scripts/path_publisher.py & python3 $WS/src/loki_monitor/loki_monitor/step_logger.py" C-m
+  "$SRC && ros2 launch loki_bringup sim.launch.py & sleep 8 && python3 $WS/src/loki_bringup/scripts/path_publisher.py & python3 $WS/src/loki_monitor/loki_monitor/step_logger.py" C-m
 
 # Pane 1: commands
 tmux send-keys -t "$SESSION:0.1" "$SRC"$'\n'
@@ -47,8 +47,8 @@ alias heading="f(){ ros2 topic pub --once /target/heading std_msgs/msg/Float64 \
 alias mass="f(){ ros2 topic pub --once /target/moving_mass std_msgs/msg/Float64 \"{data: \$1}\"; unset -f f; }; f"
 # go <depth> <speed> <mass>
 alias go="f(){ ros2 topic pub --once /loki/command loki_msgs/msg/LokiCommand \"{target_depth: \$1, target_speed: \$2, target_moving_mass: \$3}\"; unset -f f; }; f"
-alias circle="python3 ~/loki_ws/src/loki_localization/scripts/circle_test.py"
-alias box="python3 ~/loki_ws/src/loki_localization/scripts/box_test.py"
+alias circle="python3 ~/loki_ws/src/loki_bringup/scripts/circle_test.py"
+alias box="python3 ~/loki_ws/src/loki_bringup/scripts/box_test.py"
 clear
 ' C-m
 

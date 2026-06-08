@@ -28,12 +28,12 @@ def generate_launch_description():
     ld = LaunchDescription()
 
     # Get the path to the parameter file
-    pkg_share = get_package_share_directory('loki_hardware_dvl')
+    pkg_share = get_package_share_directory('loki_cerulean')
     params_file = os.path.join(pkg_share, 'params', 'tracker650_params.yaml')
 
     # DVL Publisher Node - Hardware interface
     dvl_node = Node(
-        package='loki_hardware_dvl',
+        package='loki_cerulean',
         executable='tracker650_receiver',
         name='receiver',
         namespace='dvl',
@@ -44,7 +44,7 @@ def generate_launch_description():
 
     # DVL Republisher Node - Data conversion
     dvl_repub_node = Node(
-        package='loki_hardware_dvl',
+        package='loki_cerulean',
         executable='tracker650_republisher',
         name='republisher',
         namespace='dvl',

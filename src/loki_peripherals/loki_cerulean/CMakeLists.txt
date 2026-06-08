@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(loki_hardware_dvl)
+project(loki_cerulean)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
@@ -65,10 +65,9 @@ install(TARGETS
   DESTINATION lib/${PROJECT_NAME}
 )
 
-# Install launch and params
+# Install launch
 install(DIRECTORY
   launch
-  params
   DESTINATION share/${PROJECT_NAME}
 )
 

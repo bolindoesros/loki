@@ -33,7 +33,5 @@ install(TARGETS loki_controller pid_lib
   DESTINATION lib/${PROJECT_NAME})
 install(DIRECTORY include/
   DESTINATION include)
-install(DIRECTORY config/
-  DESTINATION share/${PROJECT_NAME}/config)
 
 ament_package()

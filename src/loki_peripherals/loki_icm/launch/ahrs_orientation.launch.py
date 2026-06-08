@@ -4,7 +4,7 @@ from launch_ros.actions import Node
 def generate_launch_description():
     return LaunchDescription([
         Node(
-            package='loki_hardware_imu',
+            package='loki_icm',
             executable='ahrs_orientation',
             name='ahrs_orientation_node',
             output='screen',

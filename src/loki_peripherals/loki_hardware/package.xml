@@ -3,16 +3,17 @@
 <package format="3">
   <name>loki_hardware</name>
   <version>0.1.0</version>
-  <description>
-    hardware bridge for loki auv.
-    hw_bridge.py relays /cmd/* to ESP32 via micro-ROS.
-  </description>
+  <description>Hardware bridge — relays /cmd/* to ESP32 via micro-ROS.</description>
   <maintainer email="bolin@bolin.com">Bolin</maintainer>
   <license>MIT</license>
-  <exec_depend>rclpy</exec_depend>
-  <exec_depend>std_msgs</exec_depend>
-  <exec_depend>loki_msgs</exec_depend>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <depend>rclcpp</depend>
+  <depend>std_msgs</depend>
+  <depend>loki_msgs</depend>
+
   <export>
-    <build_type>ament_python</build_type>
+    <build_type>ament_cmake</build_type>
   </export>
 </package>

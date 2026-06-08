@@ -12,23 +12,11 @@ import os
 
 def generate_launch_description() -> LaunchDescription:
 
-    pid_params = os.path.join(
-        get_package_share_directory("loki_control"),
-        "config",
-        "pid_params.yaml",
-    )
+    config_dir = get_package_share_directory("loki_bringup")
 
-    ekf_params = os.path.join(
-        get_package_share_directory("loki_localization"),
-        "config",
-        "ekf.yaml",
-    )
-
-    urdf_file = os.path.join(
-        get_package_share_directory("loki_description"),
-        "urdf",
-        "Full_Assembly_URDF_Combined.urdf",
-    )
+    pid_params = os.path.join(config_dir, "config", "pid_params.yaml")
+    ekf_params  = os.path.join(config_dir, "config", "ekf.yaml")
+    urdf_file   = os.path.join(config_dir, "urdf", "Full_Assembly_URDF_Combined.urdf")
 
     # description
     robot_state_publisher = Node(
@@ -43,7 +31,7 @@ def generate_launch_description() -> LaunchDescription:
 
     # hardware drivers
     imu_node = Node( # publish /imu/data_raw from AHRS
-        package="loki_hardware_imu",
+        package="loki_icm",
         executable="ahrs_orientation",
         name="ahrs_orientation_node",
         output="screen",
@@ -67,7 +55,7 @@ def generate_launch_description() -> LaunchDescription:
     )
 
     dvl_receiver = Node(
-        package="loki_hardware_dvl",
+        package="loki_cerulean",
         executable="tracker650_receiver",
         name="tracker650_receiver",
         output="screen",
@@ -76,7 +64,7 @@ def generate_launch_description() -> LaunchDescription:
     )
 
     dvl_republisher = Node(
-        package="loki_hardware_dvl",
+        package="loki_cerulean",
         executable="tracker650_republisher",
         name="tracker650_republisher",
         output="screen",
