@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(loki_hardware)
+project(loki_actuators)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
@@ -10,15 +10,15 @@ find_package(rclcpp      REQUIRED)
 find_package(std_msgs    REQUIRED)
 find_package(loki_msgs   REQUIRED)
 
-add_executable(hw_bridge src/hw_bridge.cpp)
+add_executable(actuator_bridge src/actuator_bridge.cpp)
 
-ament_target_dependencies(hw_bridge
+ament_target_dependencies(actuator_bridge
   rclcpp
   std_msgs
   loki_msgs
 )
 
-install(TARGETS hw_bridge
+install(TARGETS actuator_bridge
   DESTINATION lib/${PROJECT_NAME}
 )
 

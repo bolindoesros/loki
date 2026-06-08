@@ -8,7 +8,7 @@
   <license>MIT</license>
   <buildtool_depend>ament_cmake</buildtool_depend>
 <exec_depend>loki_control</exec_depend>
-<exec_depend>loki_hardware</exec_depend>
+<exec_depend>loki_actuators</exec_depend>
 <exec_depend>loki_icm</exec_depend>
 <exec_depend>loki_cerulean</exec_depend>
 <exec_depend>loki_monitor</exec_depend>

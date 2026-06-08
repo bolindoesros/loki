@@ -22,9 +22,10 @@ sleep 1
 
 echo "Building..."
 cd "$WS"
+unset AMENT_PREFIX_PATH CMAKE_PREFIX_PATH PYTHONPATH COLCON_PREFIX_PATH
 source /opt/ros/jazzy/setup.bash
 source "$HOME/auv_demo_ws/install/setup.bash"
-colcon build --packages-select loki_msgs loki_control loki_monitor loki_hardware loki_icm loki_cerulean loki_bringup
+colcon build --packages-select loki_msgs loki_control loki_monitor loki_actuators loki_icm loki_cerulean loki_bringup
 source "$WS/install/setup.bash"
 echo "Build done."
 sleep 1

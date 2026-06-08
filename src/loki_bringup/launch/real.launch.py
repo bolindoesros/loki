@@ -72,10 +72,10 @@ def generate_launch_description() -> LaunchDescription:
         respawn_delay=2.0,
     )
 
-    hw_bridge = Node(
-        package="loki_hardware",
-        executable="hw_bridge",
-        name="hw_bridge",
+    actuator_bridge = Node(
+        package="loki_actuators",
+        executable="actuator_bridge",
+        name="actuator_bridge",
         output="screen",
         respawn=True,
         respawn_delay=2.0,
@@ -130,7 +130,7 @@ def generate_launch_description() -> LaunchDescription:
         madgwick,           
         dvl_receiver,
         dvl_republisher,
-        hw_bridge,
+        actuator_bridge,
         # EKF
         TimerAction(period=2.0, actions=[ekf_node]),
         # control
