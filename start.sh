@@ -34,7 +34,7 @@ tmux split-window -v -t "$SESSION"
 
 # Pane 0: launch + path publisher
 tmux send-keys -t "$SESSION:0.0" \
-  "$SRC && ros2 launch loki_bringup sim.launch.py & sleep 8 && python3 $WS/src/loki_localization/scripts/path_publisher.py" C-m
+  "$SRC && ros2 launch loki_bringup sim.launch.py & sleep 8 && python3 $WS/src/loki_localization/scripts/path_publisher.py & python3 $WS/src/loki_monitor/loki_monitor/step_logger.py" C-m
 
 # Pane 1: commands
 tmux send-keys -t "$SESSION:0.1" "$SRC"$'\n'

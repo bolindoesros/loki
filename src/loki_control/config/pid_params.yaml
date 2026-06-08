@@ -25,9 +25,9 @@ loki_controller:
     # ── Depth outer loop ──────────────────────────────────────────
     depth:
       kp:        100.0
-      ki:          2.0
+      ki:          1.0
       kd:          0.0
-      antiwindup:  8.0
+      antiwindup:  5.0
       output_max:  15.0
       output_min: -15.0
 
