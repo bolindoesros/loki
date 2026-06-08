@@ -1,27 +1,8 @@
 ## data pipeline
 ```
-┌───────────────────────────────────────────────────────┐
-│                        ESP32                          │
-│      IMU          Pressure Sensor          DVL        │
-└──────────────────────────┬────────────────────────────┘
-                      esp/raw_sensor
-             ┌─────────────┴────────────┐
-             ▼                          ▼
-┌───────────────────────┐     ┌─────────────────────┐
-│  loki_hardware_imu    │     │  loki_hardware_dvl  │
-└─────┬──────────────┬───┘    └──────────┬──────────┘
-/imu/data_raw  /pressure/raw    /dvl/twist_stamped
-/imu/mag             │                   │
-      ▼              ▼                   │
-┌─────────────┐ ┌───────────────────┐    │
-│   Madgwick  │ │ pressure_to_depth │    │
-│   Filter    │ └──────┬────────────┘    │
-└──────┬──────┘        │                 │
-       │               │                 │
-   /imu/data      /depth/pose            │
-       └───────────────┴─────────────────┘
-                       │
-                       ▼
+   /imu/data         /depth/pose      /dvl/twist_stamped
+                          │
+                          ▼
 ┌───────────────────────────────────────────────────────┐
 │                   loki_localization                   │
 │                 EKF → /odometry/filtered              │
