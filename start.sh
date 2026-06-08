@@ -11,7 +11,6 @@ pkill -9 -f "loki_monitor"     2>/dev/null
 pkill -9 -f "ros_tcp_endpoint" 2>/dev/null
 pkill -9 -f "foxglove_bridge"  2>/dev/null
 pkill -9 -f "ekf_node"         2>/dev/null
-pkill -9 -f "path_publisher"   2>/dev/null
 pkill -9 -f "circle_test"      2>/dev/null
 pkill -9 -f "box_test"         2>/dev/null
 pkill -9 -f "ros2"             2>/dev/null
@@ -33,9 +32,9 @@ sleep 1
 tmux new-session -d -s "$SESSION" -x 220 -y 50
 tmux split-window -v -t "$SESSION"
 
-# Pane 0: launch + path publisher
+# Pane 0: launch
 tmux send-keys -t "$SESSION:0.0" \
-  "$SRC && ros2 launch loki_bringup sim.launch.py & sleep 8 && python3 $WS/src/loki_bringup/scripts/path_publisher.py & python3 $WS/src/loki_monitor/loki_monitor/step_logger.py" C-m
+  "$SRC && ros2 launch loki_bringup sim.launch.py & python3 $WS/src/loki_monitor/loki_monitor/step_logger.py" C-m
 
 # Pane 1: commands
 tmux send-keys -t "$SESSION:0.1" "$SRC"$'\n'

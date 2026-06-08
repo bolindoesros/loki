@@ -7,7 +7,8 @@ import math
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy
-from nav_msgs.msg import Odometry
+from nav_msgs.msg import Odometry, Path
+from geometry_msgs.msg import PoseStamped
 from std_msgs.msg import Bool, Float64, Int32
 
 class MonitorNode(Node):
@@ -33,8 +34,17 @@ class MonitorNode(Node):
             "cmd_moving_mass": self.create_publisher(Float64, "/monitor/cmd/moving_mass", qos),
         }
 
+        # paths for localisation visualization
+        self._ekf_path = Path()
+        self._gt_path  = Path()
+        self._ekf_path.header.frame_id = "odom"
+        self._gt_path.header.frame_id  = "odom"
+        self._pub["path_ekf"] = self.create_publisher(Path, "/path/ekf",          10)
+        self._pub["path_gt"]  = self.create_publisher(Path, "/path/ground_truth", 10)
+
         # vehicle state
         self.create_subscription(Odometry, "/odometry/filtered",  self._on_odom,        qos)
+        self.create_subscription(Odometry, "/ground_truth/odom",  self._on_gt_odom,     10)
         self.create_subscription(Bool,     "/system/arm_state",   self._on_arm_state,   qos)
         # commands
         self.create_subscription(Int32,   "/cmd/thruster",    self._on_cmd_thruster,    qos)
@@ -51,6 +61,21 @@ class MonitorNode(Node):
         q = msg.pose.pose.orientation
         roll, pitch, yaw = self._quat_to_rpy(q.x, q.y, q.z, q.w)
         self._publish_orientation(roll, pitch, yaw)
+
+        pose = PoseStamped()
+        pose.header = msg.header
+        pose.pose   = msg.pose.pose
+        self._ekf_path.header.stamp = msg.header.stamp
+        self._ekf_path.poses.append(pose)
+        self._pub["path_ekf"].publish(self._ekf_path)
+
+    def _on_gt_odom(self, msg: Odometry) -> None:
+        pose = PoseStamped()
+        pose.header = msg.header
+        pose.pose   = msg.pose.pose
+        self._gt_path.header.stamp = msg.header.stamp
+        self._gt_path.poses.append(pose)
+        self._pub["path_gt"].publish(self._gt_path)
 
     def _publish_orientation(self, roll: float, pitch: float, yaw: float) -> None:
         # roll, pitch, yaw are in radians, convert to degrees for monitoring
