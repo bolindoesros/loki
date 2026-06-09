@@ -13,8 +13,9 @@ namespace loki
 {
 
 // Timer periods
-static constexpr int OUTER_LOOP_MS = 50;   // 20Hz — depth PID (outer cascade)
-static constexpr int INNER_LOOP_MS = 10;   // 100Hz — pitch, speed, yaw PIDs (inner cascade)
+static constexpr int    OUTER_LOOP_MS    = 50;   // 20Hz — depth PID (outer cascade)
+static constexpr int    INNER_LOOP_MS    = 10;   // 100Hz — pitch, speed, yaw PIDs (inner cascade)
+static constexpr double MAX_MOVING_MASS  = 0.4;  // m — physical travel limit of moving mass
 
 ControllerNode::ControllerNode()
 : Node("loki_controller")
@@ -85,14 +86,14 @@ void ControllerNode::on_target_speed(const std_msgs::msg::Float64::SharedPtr msg
 }
 
 void ControllerNode::on_target_moving_mass(const std_msgs::msg::Float64::SharedPtr msg){
-  // Clamp to [0, 0.5] (physical limits)
-  target_moving_mass_ = std::clamp(msg->data, 0.0, 0.5);
+  // Clamp to [0, MAX_MOVING_MASS] (physical limits)
+  target_moving_mass_ = std::clamp(msg->data, 0.0, MAX_MOVING_MASS);
 }
 
 void ControllerNode::on_loki_command(const loki_msgs::msg::LokiCommand::SharedPtr msg) {
   target_depth_       = msg->target_depth;
   target_speed_       = msg->target_speed;
-  target_moving_mass_ = msg->target_moving_mass;
+  target_moving_mass_ = std::clamp(msg->target_moving_mass, 0.0, MAX_MOVING_MASS);
 }
 
 // arm service callback

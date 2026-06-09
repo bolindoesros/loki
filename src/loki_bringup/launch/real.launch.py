@@ -85,7 +85,7 @@ def generate_launch_description() -> LaunchDescription:
     ekf_node = Node(
         package="robot_localization",
         executable="ekf_node",
-        name="ekf_node",
+        name="ekf_filter",
         output="screen",
         parameters=[ekf_params, {'use_sim_time': False}],
         respawn=True,

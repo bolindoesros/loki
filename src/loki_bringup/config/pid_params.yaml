@@ -7,9 +7,9 @@ loki_controller:
     # ── Speed (PI) ────────────────────────────────────────────────────
     speed:
       kp:         1200.0
-      ki:          300.0
+      ki:          250.0
       kd:            0.0
-      antiwindup:  400.0
+      antiwindup:    1.6
       output_max:  400.0
       output_min: -400.0
 

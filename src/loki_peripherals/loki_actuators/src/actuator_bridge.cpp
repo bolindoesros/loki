@@ -18,19 +18,19 @@ public:
 
         esp_pub_ = create_publisher<loki_msgs::msg::EspPacket>("/pc_to_esp_cmd", qos);
 
-        create_subscription<std_msgs::msg::Int32>(
+        thruster_sub_ = create_subscription<std_msgs::msg::Int32>(
             "/cmd/thruster", qos,
             [this](const std_msgs::msg::Int32::SharedPtr msg) { thruster_ = msg->data; });
 
-        create_subscription<std_msgs::msg::Int32>(
+        elevator_sub_ = create_subscription<std_msgs::msg::Int32>(
             "/cmd/elevator", qos,
             [this](const std_msgs::msg::Int32::SharedPtr msg) { elevator_ = msg->data; });
 
-        create_subscription<std_msgs::msg::Int32>(
+        rudder_sub_ = create_subscription<std_msgs::msg::Int32>(
             "/cmd/rudder", qos,
             [this](const std_msgs::msg::Int32::SharedPtr msg) { rudder_ = msg->data; });
 
-        create_subscription<std_msgs::msg::Float64>(
+        moving_mass_sub_ = create_subscription<std_msgs::msg::Float64>(
             "/cmd/moving_mass", qos,
             [this](const std_msgs::msg::Float64::SharedPtr msg) { moving_mass_ = msg->data; });
 
@@ -38,7 +38,7 @@ public:
         timer_ = create_wall_timer(std::chrono::milliseconds(50),
                                    [this]() { publish(); });
 
-        RCLCPP_INFO(get_logger(), "HwBridge ready — waiting for ESP32 firmware subscriber");
+        RCLCPP_INFO(get_logger(), "actutaor bridge ready to publish commands");
     }
 
 private:
@@ -56,6 +56,10 @@ private:
     }
 
     rclcpp::Publisher<loki_msgs::msg::EspPacket>::SharedPtr esp_pub_;
+    rclcpp::Subscription<std_msgs::msg::Int32>::SharedPtr   thruster_sub_;
+    rclcpp::Subscription<std_msgs::msg::Int32>::SharedPtr   elevator_sub_;
+    rclcpp::Subscription<std_msgs::msg::Int32>::SharedPtr   rudder_sub_;
+    rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr moving_mass_sub_;
     rclcpp::TimerBase::SharedPtr timer_;
 
     int    thruster_    = 1500;
